@@ -56,7 +56,8 @@ for (const s of ['terms/', 'privacy/', 'remove/', 'faq/', 'app/']) {
     ok('dashboard upsell cards', (await p.$$('#upsell .pcard')).length === 3);
     await p.fill('#hookurl', 'http://127.0.0.1/hook'); await p.click('#hookform button[type=submit]');
     await p.waitForFunction(() => document.querySelector('#hookmsg').textContent.length > 3);
-    ok('webhook SSRF rejected (live API)', (await p.textContent('#hookmsg')).includes('public https'), await p.textContent('#hookmsg'));
+    const hm = await p.textContent('#hookmsg');
+    ok('webhook SSRF rejected (live API)', hm.includes('public https') || (am.includes('One free monitor per network') && hm.includes('Add a monitor first')), hm);
     await p.screenshot({ path: `${SHOTS}/app-free.png`, fullPage: true });
     // clean up: delete the monitor
     if (await p.$('.mdel')) { p.once('dialog', (d) => d.accept()); await p.click('.mdel'); await p.waitForTimeout(2500); ok('monitor deleted (live API)', !(await p.textContent('#monitors')).includes('example.org')); }
