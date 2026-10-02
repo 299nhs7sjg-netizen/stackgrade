@@ -31,7 +31,7 @@ Letter grades: **A** 90–100 · **B** 80–89 · **C** 70–79 · **D** 60–69
 
 | Check | Weight | Pass (1.0) | Warn | Fail (0) |
 |---|---|---|---|---|
-| SPF | 15 | Exactly one `v=spf1` record ending in `~all` or `-all`, with 10 or fewer DNS lookups (counted recursively through `include:`/`redirect=`) | 0.5: `?all`, no `all`, or a broken nested include | Missing, more than one record, `+all`, or more than 10 lookups |
+| SPF | 15 | Exactly one `v=spf1` record ending in `~all` or `-all`, with 10 or fewer DNS lookups (counted recursively through `include:`/`redirect=`) | 0.5: `?all`, no `all`, a broken nested include, or no SPF on a name with no MX whose DMARC is already enforced | Missing, more than one record, `+all`, or more than 10 lookups |
 | DMARC | 20 | `p=reject` (1.0; 0.9 without `rua=`) or `p=quarantine` (0.85; 0.75 without `rua=`) | `p=none` (0.4; 0.3 without `rua=`). `pct<100` multiplies by 0.7 and shows a warning | Missing, more than one record, or an invalid `p=` |
 | DKIM | 10 | A valid key at one of ~40 common selectors (google, selector1/2, k1–k3, s1/s2, default, mail, dkim, zmail, fm1–3, protonmail, mandrill, cm, …), or all keys revoked on a domain that sends no mail | – | Never failed. "Not found" means **Not checked** (excluded), because providers can use selectors that can't be guessed |
 | MX | 5 | MX records present, or a null MX (`0 .`) | 0.5: no MX at all | – |
@@ -50,7 +50,7 @@ Subdomains inherit DMARC from the organizational domain (using `sp=` when it is 
 | Referrer-Policy | 2 | `referrer-policy` |
 | Cookie security | 2 | `cookies` (no cookies counts as a pass) |
 
-Pass = 1.0, warn = 0.5, fail = 0. A test that Observatory fails with a score modifier above −10 counts as a warning. If the scanner errors, times out, or the site answers it with HTTP 4xx/5xx (often bot blocking), **all seven are Not checked**, because the headers may not be what real visitors get. If the bare domain doesn't respond, `www.` is tried.
+Pass = 1.0, warn = 0.5, fail = 0. A test that Observatory fails with a score modifier above −10 counts as a warning. If the scanner errors, times out (100 s), or the site answers it with HTTP 4xx/5xx (often bot blocking), **all seven are Not checked**, because the headers may not be what real visitors get. If the bare domain doesn't respond, `www.` is tried.
 
 ### Domain health (15 points), from registry RDAP
 
@@ -72,6 +72,7 @@ Pass = 1.0, warn = 0.5, fail = 0. A test that Observatory fails with a score mod
 ## Known limitations
 - **.de and some other ccTLDs** have no public RDAP, so expiry and lock are Not checked for them.
 - **DKIM** with custom selectors (Amazon SES, Salesforce, Google's own dated selectors and others) can't be discovered from DNS, so it is excluded rather than failed.
+- Observatory results are cached in the visitor's browser for 1 hour (**Re-check** skips the cache).
 - **Observatory** sometimes takes 20–75 s to return details for very popular hosts. Email and domain results appear first, with a provisional grade.
 - Observatory scans the homepage only. A new result is available at most once per 60 s per host.
 

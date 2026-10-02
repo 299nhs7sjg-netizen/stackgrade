@@ -89,7 +89,7 @@ function renderNonexistent(r) {
     el.innerHTML = `<div class="notice"><h2 class="sum-h">${esc(r.domain)}</h2><p><b>This domain does not exist in DNS</b>, so there is nothing to grade. ${reg}</p><p class="d" style="color:var(--mut)">Check the spelling, or try the main domain (for example <code>company.com</code> instead of a subdomain).</p></div>`;
 }
 
-async function run(input, { push = true } = {}) {
+async function run(input, { push = true, fresh = false } = {}) {
     const p = parseInput(input);
     const err = $('#err');
     if (p.error) { err.textContent = p.error; err.hidden = false; $('#result').hidden = true; return; }
@@ -103,7 +103,7 @@ async function run(input, { push = true } = {}) {
     render({ domain: p.domain, checks: [] }, false);
     $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
-        const rep = await grade(p.domain, { onUpdate: (r) => { if (id === runId) render(r, false); } });
+        const rep = await grade(p.domain, { fresh, onUpdate: (r) => { if (id === runId) render(r, false); } });
         if (id !== runId) return;
         if (rep.error) { err.textContent = rep.error; err.hidden = false; $('#result').hidden = true; return; }
         if (rep.nonexistent) { renderNonexistent(rep); return; }
@@ -150,7 +150,7 @@ document.addEventListener('click', async (e) => {
     } else if (t.id === 'nshare' && current) {
         navigator.share({ title: `${current.domain}: ${current.letter} on StackGrade`, url: `${location.origin}${location.pathname}?d=${encodeURIComponent(current.domain)}` }).catch(() => {});
     } else if (t.id === 'card' && current) gradeCard(current);
-    else if (t.id === 'rerun' && current) run(current.domain, { push: false });
+    else if (t.id === 'rerun' && current) run(current.domain, { push: false, fresh: true });
     else if (t.matches('.examples a')) { e.preventDefault(); run(new URL(t.href).searchParams.get('d')); }
 });
 $('#form').addEventListener('submit', (e) => { e.preventDefault(); run($('#q').value); });

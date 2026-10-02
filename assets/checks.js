@@ -135,6 +135,11 @@ async function checkSpf(domain, dns, ctx) {
     const r = await dns(domain, 'TXT');
     const recs = r.answers.filter((x) => /^v=spf1(\s|$)/i.test(x));
     const noMail = ctx.mx.kind !== 'present';
+    if (recs.length === 0 && noMail && ctx.dmarcEnforced) {
+        return { ...base, status: 'warn', points: 0.5, summary: 'No SPF record, but this name does not receive email and DMARC enforcement already blocks spoofing.',
+            details: 'Publishing "v=spf1 -all" makes it explicit that no server may send as this name, which some filters check directly.',
+            fix: `Add a TXT record at ${domain}:`, record: 'v=spf1 -all' };
+    }
     if (recs.length === 0) {
         return { ...base, status: 'fail', points: 0, summary: 'No SPF record found.',
             details: 'Without SPF, receivers cannot tell which servers may send email for this domain, and anyone can spoof it more easily. Gmail and Yahoo require SPF or DKIM for all senders.',
@@ -307,7 +312,20 @@ async function observatoryScan(host) {
     if (!res.ok && !j.error) throw new Error(`scanner HTTP ${res.status}`);
     return j;
 }
-export async function runObservatory(domain) {
+const OBS_CACHE_MS = 60 * 60 * 1000;
+const store = (() => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch { return null; } })();
+export async function runObservatory(domain, { fresh = false } = {}) {
+    const key = `sg-obs:${domain}`;
+    if (store && !fresh) {
+        try { const c = JSON.parse(store.getItem(key) || 'null'); if (c && Date.now() - c.at < OBS_CACHE_MS) return { ...c.data, cached: true }; } catch { /* ignore */ }
+    }
+    const data = await runObservatoryLive(domain);
+    if (store && !data.error && data.tests && Object.keys(data.tests).length) {
+        try { store.setItem(key, JSON.stringify({ at: Date.now(), data })); } catch { /* quota */ }
+    }
+    return data;
+}
+async function runObservatoryLive(domain) {
     let host = domain;
     let scan;
     try {
@@ -322,7 +340,7 @@ export async function runObservatory(domain) {
     if (scan.error) return { error: OBS_ERRORS[scan.error] || stripHtml(scan.message || scan.error) };
     let detail;
     try {
-        const r = await fetchT(`${OBS}/analyze?host=${encodeURIComponent(host)}`, {}, 70000);
+        const r = await fetchT(`${OBS}/analyze?host=${encodeURIComponent(host)}`, {}, 100000);
         detail = await r.json();
     } catch (e) { return { error: e.name === 'AbortError' ? `Mozilla's scanner took too long to return details (its grade for this site was ${scan.grade})` : 'the security scanner results could not be loaded', scan, detailsUrl: scan.details_url }; }
     return { host, scan, tests: detail.tests || {}, headers: detail.scan?.response_headers || {}, statusCode: scan.status_code, detailsUrl: scan.details_url };
@@ -530,7 +548,7 @@ export async function hiringSignal(org) {
 }
 
 // ---------- orchestrator ----------
-export async function grade(input, { onUpdate = () => {} } = {}) {
+export async function grade(input, { onUpdate = () => {}, fresh = false } = {}) {
     const parsed = parseInput(input);
     if (parsed.error) return { error: parsed.error };
     const domain = parsed.domain;
@@ -556,13 +574,16 @@ export async function grade(input, { onUpdate = () => {} } = {}) {
         const ctx = { mx };
         push(checkMx(mx));
         await Promise.all([
-            checkSpf(domain, dns, ctx).catch(safe('spf', 'email', 'SPF record')).then(push),
-            checkDmarc(domain, org, dns).catch(safe('dmarc', 'email', 'DMARC policy')).then(push),
+            checkDmarc(domain, org, dns).catch(safe('dmarc', 'email', 'DMARC policy')).then((d) => {
+                push(d);
+                ctx.dmarcEnforced = d.status !== 'skip' && /p=(reject|quarantine)/i.test(d.summary || '');
+                return checkSpf(domain, dns, ctx).catch(safe('spf', 'email', 'SPF record')).then(push);
+            }),
             checkDkim(domain, dns, { noMail: mx.kind !== 'present' }).catch(safe('dkim', 'email', 'DKIM signing keys')).then(push),
             checkEmailExtras(domain, dns).then(push).catch(() => {}),
         ]);
     })();
-    const obsP = runObservatory(domain).catch((e) => ({ error: e.message }));
+    const obsP = runObservatory(domain, { fresh }).catch((e) => ({ error: e.message }));
     const webP = obsP.then((obs) => { report.observatory = obs.detailsUrl ? { url: obs.detailsUrl, grade: obs.scan?.grade, host: obs.host, statusCode: obs.statusCode } : null; push(webChecks(obs)); });
     const rdapP = rdapLookup(org).catch((e) => ({ error: e.message })).then((rd) => { report.rdap = rd; push(domainChecks(rd, org)); });
     const stackP = (async () => {
