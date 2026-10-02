@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free SPF record checker: validate SPF and the 10-lookup limit | StackGrade</title>
+<meta name="description" content="Validate any domain's SPF record: syntax, multiple records, +all/~all/-all, and the 10 DNS-lookup limit counted through every include. Plain-English fixes, free.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/spf-checker/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="Free SPF record checker: validate SPF and the 10-lookup limit | StackGrade">
+<meta property="og:description" content="Validate any domain's SPF record: syntax, multiple records, +all/~all/-all, and the 10 DNS-lookup limit counted through every include. Plain-English fixes, free.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/spf-checker/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/spf.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade SPF check","url":"https://299nhs7sjg-netizen.github.io/stackgrade/spf-checker/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Validate any domain's SPF record: syntax, multiple records, +all/~all/-all, and the 10 DNS-lookup limit counted through every include. Plain-English fixes, free."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is an SPF record?","acceptedAnswer":{"@type":"Answer","text":"SPF (Sender Policy Framework) is a DNS TXT record that lists the servers and services allowed to send email for your domain, for example v=spf1 include:_spf.google.com ~all. Receivers compare the sending server with this list."}},{"@type":"Question","name":"Should I use ~all or -all?","acceptedAnswer":{"@type":"Answer","text":"Both are fine. ~all (soft fail) is the common choice, and once DMARC is enforced, receivers act on the DMARC policy anyway. -all (hard fail) is stricter and suits domains that are sure every sender is listed, or that never send email at all."}},{"@type":"Question","name":"What is the SPF 10-lookup limit?","acceptedAnswer":{"@type":"Answer","text":"RFC 7208 limits SPF evaluation to 10 DNS-querying mechanisms (include, a, mx, ptr, exists, redirect), counted recursively. Going over causes a \"permerror\", and many receivers treat the message as failing SPF. Remove unused services or replace includes with ip4:/ip6: ranges."}},{"@type":"Question","name":"Can I have two SPF records?","acceptedAnswer":{"@type":"Answer","text":"No. A domain must have only one SPF record. If you add a new email service, add its include to the existing record instead of creating a second one."}},{"@type":"Question","name":"My domain does not send email. Do I need SPF?","acceptedAnswer":{"@type":"Answer","text":"Yes, it is good practice: publish v=spf1 -all so nobody can pass SPF as your domain, together with a DMARC record set to p=reject."}},{"@type":"Question","name":"Does SPF alone stop spoofing?","acceptedAnswer":{"@type":"Answer","text":"No. SPF checks the hidden envelope sender, not the From address people see. DMARC ties SPF and DKIM to the visible From domain, so you need DMARC to actually stop spoofing."}}]}</script>
+</head>
+<body data-focus="spf" data-focus-title="SPF check">
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero" id="hero">
+    <h1>SPF record checker</h1>
+    <p class="sub">Validate a domain's SPF record, count its DNS lookups through every include, and get a fix you can paste. Free, no signup.</p>
+    <form id="form" class="search" autocomplete="off">
+      <label for="q" class="sr">Domain</label>
+      <input id="q" name="d" type="text" inputmode="url" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required>
+      <button type="submit" id="go">Check</button>
+    </form>
+    <p class="examples">Try: <a href="?d=github.com">github.com</a> <a href="?d=stripe.com">stripe.com</a> <a href="?d=bbc.co.uk">bbc.co.uk</a> <a href="?d=example.com">example.com</a></p>
+    <p id="err" class="err" role="alert" hidden></p>
+    <nav class="tools" aria-label="Checks"><a href="/stackgrade/">Full grade</a><a href="/stackgrade/dmarc-checker/">DMARC checker</a><a href="/stackgrade/spf-checker/" aria-current="page">SPF checker</a><a href="/stackgrade/dkim-checker/">DKIM checker</a><a href="/stackgrade/email-provider-lookup/">Email provider lookup</a><a href="/stackgrade/security-headers-checker/">Security headers checker</a></nav>
+  </section>
+  <section id="result" class="result" hidden aria-live="polite"></section>
+  <section class="seo"><h2>What this SPF check looks at</h2>
+<ul><li>Exactly one TXT record starting with <code>v=spf1</code> (two or more is a permanent error).</li>
+<li>The final <code>all</code> rule: <code>-all</code> or <code>~all</code> pass, <code>?all</code> or a missing all is a warning, <code>+all</code> fails.</li>
+<li>The <b>10 DNS-lookup limit</b>: every <code>include:</code>, <code>a</code>, <code>mx</code>, <code>ptr</code>, <code>exists</code> and <code>redirect=</code> counts, including the ones nested inside your includes. Above 10, SPF fails for every message.</li>
+<li>Broken includes that point to a domain without a single valid SPF record.</li></ul></section>
+  <section class="seo faq"><h2>Frequently asked questions</h2><details><summary>What is an SPF record?</summary><p>SPF (Sender Policy Framework) is a DNS TXT record that lists the servers and services allowed to send email for your domain, for example <code>v=spf1 include:_spf.google.com ~all</code>. Receivers compare the sending server with this list.</p></details><details><summary>Should I use ~all or -all?</summary><p>Both are fine. ~all (soft fail) is the common choice, and once DMARC is enforced, receivers act on the DMARC policy anyway. -all (hard fail) is stricter and suits domains that are sure every sender is listed, or that never send email at all.</p></details><details><summary>What is the SPF 10-lookup limit?</summary><p>RFC 7208 limits SPF evaluation to 10 DNS-querying mechanisms (include, a, mx, ptr, exists, redirect), counted recursively. Going over causes a "permerror", and many receivers treat the message as failing SPF. Remove unused services or replace includes with ip4:/ip6: ranges.</p></details><details><summary>Can I have two SPF records?</summary><p>No. A domain must have only one SPF record. If you add a new email service, add its include to the existing record instead of creating a second one.</p></details><details><summary>My domain does not send email. Do I need SPF?</summary><p>Yes, it is good practice: publish <code>v=spf1 -all</code> so nobody can pass SPF as your domain, together with a DMARC record set to p=reject.</p></details><details><summary>Does SPF alone stop spoofing?</summary><p>No. SPF checks the hidden envelope sender, not the From address people see. DMARC ties SPF and DKIM to the visible From domain, so you need DMARC to actually stop spoofing.</p></details></section>
+  <section id="how" class="how">
+    <h2>How StackGrade works</h2>
+    <div class="cols">
+      <div><h3>Email authentication · 50 pts</h3><p>SPF (including the 10-lookup limit), DMARC policy, DKIM keys at common selectors, and MX. These decide whether Gmail and Yahoo trust your mail, and whether scammers can spoof you.</p></div>
+      <div><h3>Website security · 35 pts</h3><p>HTTPS redirect, HSTS, Content-Security-Policy, clickjacking protection, X-Content-Type-Options, Referrer-Policy and cookie flags, using Mozilla's public HTTP Observatory scan.</p></div>
+      <div><h3>Domain health · 15 pts</h3><p>Expiry date and registrar transfer lock from the official registry (RDAP). Domain age, email provider, tech stack and hiring signals are shown but not scored.</p></div>
+    </div>
+    <h3>Honest by design</h3>
+    <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
+    <h3>Privacy</h3>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+<script type="module" src="/stackgrade/assets/app.js"></script>
+</body>
+</html>

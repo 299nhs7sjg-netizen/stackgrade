@@ -1,0 +1,18 @@
+# StackGrade
+
+> StackGrade is a free website and email health grader. Enter a domain and get a 0-100 grade (A-F) in seconds, covering email authentication (SPF, DKIM, DMARC, MX), website security headers (via Mozilla HTTP Observatory) and domain health (expiry and transfer lock from registry RDAP), with plain-English fixes. No signup, no server: checks run in the visitor's browser. Checks that cannot run are shown as "Not checked" and excluded from the score.
+
+Link to a result: https://299nhs7sjg-netizen.github.io/stackgrade/?d=example.com
+
+## Tools
+- [Full grade](https://299nhs7sjg-netizen.github.io/stackgrade/): SPF, DKIM, DMARC, MX, security headers, domain expiry and lock, tech stack, hiring signal
+- [DMARC checker](https://299nhs7sjg-netizen.github.io/stackgrade/dmarc-checker/): DMARC policy, reporting, pct and subdomain policy
+- [SPF checker](https://299nhs7sjg-netizen.github.io/stackgrade/spf-checker/): SPF syntax and the 10 DNS-lookup limit, counted recursively
+- [DKIM checker](https://299nhs7sjg-netizen.github.io/stackgrade/dkim-checker/): probes about 40 common selectors or a custom selector (?d=example.com&s=selector)
+- [Email provider lookup](https://299nhs7sjg-netizen.github.io/stackgrade/email-provider-lookup/): mailbox provider from MX, authorized senders from SPF
+- [Security headers checker](https://299nhs7sjg-netizen.github.io/stackgrade/security-headers-checker/): HTTPS redirect, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, cookies
+- [Agency widget](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/): free embeddable grader with "Powered by StackGrade"
+- [Badge](https://299nhs7sjg-netizen.github.io/stackgrade/badge/): "Graded A/B" SVG badge for listed domains
+
+## Scoring
+- [Scoring rubric and data sources](https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric): email 50 points, website security 35, domain 15; A >= 90, B >= 80, C >= 70, D >= 60, F < 60

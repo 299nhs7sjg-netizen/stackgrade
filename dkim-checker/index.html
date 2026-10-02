@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free DKIM checker: find DKIM records and test your selector | StackGrade</title>
+<meta name="description" content="Find a domain's DKIM public keys at about 40 common selectors (google, selector1, selector2, k1, s1 and more) or test your own selector. Free, honest results.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/dkim-checker/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="Free DKIM checker: find DKIM records and test your selector | StackGrade">
+<meta property="og:description" content="Find a domain's DKIM public keys at about 40 common selectors (google, selector1, selector2, k1, s1 and more) or test your own selector. Free, honest results.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/dkim-checker/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/dkim.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade DKIM check","url":"https://299nhs7sjg-netizen.github.io/stackgrade/dkim-checker/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Find a domain's DKIM public keys at about 40 common selectors (google, selector1, selector2, k1, s1 and more) or test your own selector. Free, honest results."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is DKIM?","acceptedAnswer":{"@type":"Answer","text":"DKIM (DomainKeys Identified Mail) adds a cryptographic signature to each email. Receivers fetch the public key from DNS at selector._domainkey.yourdomain.com and verify that the message was really sent by your domain and was not changed in transit."}},{"@type":"Question","name":"How do I find my DKIM selector?","acceptedAnswer":{"@type":"Answer","text":"Open an email you sent, view the original message or headers, and find the DKIM-Signature header. The s= value is the selector and d= is the signing domain. Enter that selector above to test it."}},{"@type":"Question","name":"Why does the checker say \"not found (inconclusive)\"?","acceptedAnswer":{"@type":"Answer","text":"Some providers, such as Amazon SES, Salesforce and some Google domains, use random or dated selector names that cannot be guessed. Without the selector, nobody can look up the key, so we do not count it against you."}},{"@type":"Question","name":"What does an empty p= mean?","acceptedAnswer":{"@type":"Answer","text":"A DKIM record with an empty p= value means the key has been revoked. It is correct for retired selectors, and for domains that never send email."}},{"@type":"Question","name":"How do I set up DKIM for Google Workspace or Microsoft 365?","acceptedAnswer":{"@type":"Answer","text":"Google Workspace: Admin console > Apps > Google Workspace > Gmail > Authenticate email, generate a key, add the TXT record, then click Start authentication. Microsoft 365: Microsoft Defender portal > Email authentication settings > DKIM, then publish the two CNAME records it shows and enable signing."}},{"@type":"Question","name":"Is a 1024-bit DKIM key still OK?","acceptedAnswer":{"@type":"Answer","text":"2048-bit keys are recommended today. Many providers still use 1024-bit keys, which are accepted, but rotate to 2048-bit when your provider supports it."}}]}</script>
+</head>
+<body data-focus="dkim" data-focus-title="DKIM check">
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero" id="hero">
+    <h1>DKIM checker</h1>
+    <p class="sub">Probe about 40 common DKIM selectors, or enter your own selector to test it. Free, no signup.</p>
+    <form id="form" class="search" autocomplete="off">
+      <label for="q" class="sr">Domain</label>
+      <input id="q" name="d" type="text" inputmode="url" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required>
+      <button type="submit" id="go">Check</button>
+    </form><div class="selrow"><label for="sel">Selector (optional):</label><input id="sel" name="s" type="text" placeholder="e.g. google, selector1" spellcheck="false" autocapitalize="off"></div>
+    <p class="examples">Try: <a href="?d=github.com">github.com</a> <a href="?d=stripe.com">stripe.com</a> <a href="?d=bbc.co.uk">bbc.co.uk</a> <a href="?d=example.com">example.com</a></p>
+    <p id="err" class="err" role="alert" hidden></p>
+    <nav class="tools" aria-label="Checks"><a href="/stackgrade/">Full grade</a><a href="/stackgrade/dmarc-checker/">DMARC checker</a><a href="/stackgrade/spf-checker/">SPF checker</a><a href="/stackgrade/dkim-checker/" aria-current="page">DKIM checker</a><a href="/stackgrade/email-provider-lookup/">Email provider lookup</a><a href="/stackgrade/security-headers-checker/">Security headers checker</a></nav>
+  </section>
+  <section id="result" class="result" hidden aria-live="polite"></section>
+  <section class="seo"><h2>How this DKIM check works</h2>
+<p>DKIM public keys live at <code>&lt;selector&gt;._domainkey.yourdomain.com</code>, and DNS has no way to list them, so the selector has to be known or guessed. We look up about 40 selectors that common providers use (Google Workspace uses <code>google</code>, Microsoft 365 uses <code>selector1</code>/<code>selector2</code>, Mailchimp <code>k1</code>–<code>k3</code>, SendGrid <code>s1</code>/<code>s2</code>, and others), plus any selector you enter.</p>
+<p><b>Honest results:</b> if no key is found at common selectors, we say so and leave DKIM out of the score. "Not found" does not prove DKIM is missing. If you enter your own selector and no key exists there, the check fails, because mail signed with it will fail DKIM.</p></section>
+  <section class="seo faq"><h2>Frequently asked questions</h2><details><summary>What is DKIM?</summary><p>DKIM (DomainKeys Identified Mail) adds a cryptographic signature to each email. Receivers fetch the public key from DNS at selector._domainkey.yourdomain.com and verify that the message was really sent by your domain and was not changed in transit.</p></details><details><summary>How do I find my DKIM selector?</summary><p>Open an email you sent, view the original message or headers, and find the DKIM-Signature header. The s= value is the selector and d= is the signing domain. Enter that selector above to test it.</p></details><details><summary>Why does the checker say &quot;not found (inconclusive)&quot;?</summary><p>Some providers, such as Amazon SES, Salesforce and some Google domains, use random or dated selector names that cannot be guessed. Without the selector, nobody can look up the key, so we do not count it against you.</p></details><details><summary>What does an empty p= mean?</summary><p>A DKIM record with an empty p= value means the key has been revoked. It is correct for retired selectors, and for domains that never send email.</p></details><details><summary>How do I set up DKIM for Google Workspace or Microsoft 365?</summary><p>Google Workspace: Admin console > Apps > Google Workspace > Gmail > Authenticate email, generate a key, add the TXT record, then click Start authentication. Microsoft 365: Microsoft Defender portal > Email authentication settings > DKIM, then publish the two CNAME records it shows and enable signing.</p></details><details><summary>Is a 1024-bit DKIM key still OK?</summary><p>2048-bit keys are recommended today. Many providers still use 1024-bit keys, which are accepted, but rotate to 2048-bit when your provider supports it.</p></details></section>
+  <section id="how" class="how">
+    <h2>How StackGrade works</h2>
+    <div class="cols">
+      <div><h3>Email authentication · 50 pts</h3><p>SPF (including the 10-lookup limit), DMARC policy, DKIM keys at common selectors, and MX. These decide whether Gmail and Yahoo trust your mail, and whether scammers can spoof you.</p></div>
+      <div><h3>Website security · 35 pts</h3><p>HTTPS redirect, HSTS, Content-Security-Policy, clickjacking protection, X-Content-Type-Options, Referrer-Policy and cookie flags, using Mozilla's public HTTP Observatory scan.</p></div>
+      <div><h3>Domain health · 15 pts</h3><p>Expiry date and registrar transfer lock from the official registry (RDAP). Domain age, email provider, tech stack and hiring signals are shown but not scored.</p></div>
+    </div>
+    <h3>Honest by design</h3>
+    <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
+    <h3>Privacy</h3>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+<script type="module" src="/stackgrade/assets/app.js"></script>
+</body>
+</html>

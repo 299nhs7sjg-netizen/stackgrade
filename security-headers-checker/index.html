@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free security headers checker: HSTS, CSP, X-Frame-Options and more | StackGrade</title>
+<meta name="description" content="Check a website's HTTP security headers: HTTPS redirect, HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy and cookie flags, with fixes.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/security-headers-checker/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="Free security headers checker: HSTS, CSP, X-Frame-Options and more | StackGrade">
+<meta property="og:description" content="Check a website's HTTP security headers: HTTPS redirect, HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy and cookie flags, with fixes.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/security-headers-checker/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/headers.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade Security headers","url":"https://299nhs7sjg-netizen.github.io/stackgrade/security-headers-checker/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check a website's HTTP security headers: HTTPS redirect, HSTS, Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, Referrer-Policy and cookie flags, with fixes."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Which security headers matter most?","acceptedAnswer":{"@type":"Answer","text":"Start with an HTTPS redirect and Strict-Transport-Security (HSTS), then X-Content-Type-Options: nosniff, clickjacking protection (CSP frame-ancestors or X-Frame-Options), and Referrer-Policy. A Content-Security-Policy gives the most protection against cross-site scripting, but takes the most care to set up."}},{"@type":"Question","name":"How do I add security headers?","acceptedAnswer":{"@type":"Answer","text":"It depends on your host. Cloudflare: Transform Rules > Modify Response Header. Netlify: a _headers file. Vercel: headers in vercel.json. Nginx: add_header lines. Apache: Header set in .htaccess. WordPress hosts often have a security plugin that adds them."}},{"@type":"Question","name":"Will a Content-Security-Policy break my site?","acceptedAnswer":{"@type":"Answer","text":"It can, if it blocks scripts you rely on. Start with the Content-Security-Policy-Report-Only header to see what would be blocked, then switch to enforcing. StackGrade counts report-only as a warning."}},{"@type":"Question","name":"Why does it say \"Not checked: HTTP 403\"?","acceptedAnswer":{"@type":"Answer","text":"The site answered the scanner with an error, which usually means bot protection. The headers in an error page are often different from the real site, so we do not grade them."}},{"@type":"Question","name":"Is X-XSS-Protection still needed?","acceptedAnswer":{"@type":"Answer","text":"No. Modern browsers removed the XSS auditor, and Mozilla dropped the test. Use a Content-Security-Policy instead."}}]}</script>
+</head>
+<body data-focus="https,hsts,csp,xfo,xcto,referrer,cookies" data-focus-title="Security headers">
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero" id="hero">
+    <h1>Security headers checker</h1>
+    <p class="sub">Check HTTPS, HSTS, CSP, clickjacking protection and more for any website, with copy-paste fixes. Free, no signup.</p>
+    <form id="form" class="search" autocomplete="off">
+      <label for="q" class="sr">Domain</label>
+      <input id="q" name="d" type="text" inputmode="url" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required>
+      <button type="submit" id="go">Check</button>
+    </form>
+    <p class="examples">Try: <a href="?d=github.com">github.com</a> <a href="?d=stripe.com">stripe.com</a> <a href="?d=bbc.co.uk">bbc.co.uk</a> <a href="?d=example.com">example.com</a></p>
+    <p id="err" class="err" role="alert" hidden></p>
+    <nav class="tools" aria-label="Checks"><a href="/stackgrade/">Full grade</a><a href="/stackgrade/dmarc-checker/">DMARC checker</a><a href="/stackgrade/spf-checker/">SPF checker</a><a href="/stackgrade/dkim-checker/">DKIM checker</a><a href="/stackgrade/email-provider-lookup/">Email provider lookup</a><a href="/stackgrade/security-headers-checker/" aria-current="page">Security headers checker</a></nav>
+  </section>
+  <section id="result" class="result" hidden aria-live="polite"></section>
+  <section class="seo"><h2>What this check looks at</h2>
+<p>We request a public scan from <a href="https://developer.mozilla.org/en-US/observatory" rel="noopener">Mozilla HTTP Observatory</a> and read its test results for seven areas: the HTTP-to-HTTPS redirect, Strict-Transport-Security (HSTS), Content-Security-Policy, clickjacking protection (X-Frame-Options or CSP frame-ancestors), X-Content-Type-Options, Referrer-Policy and cookie flags.</p>
+<p><b>Honest results:</b> if the site blocks the scanner (for example with HTTP 403), or the scan fails or times out, every header shows as <b>Not checked</b>, because the headers it saw may not be what real visitors get. Scans for very popular sites can take up to a minute. Observatory's scan history is public.</p></section>
+  <section class="seo faq"><h2>Frequently asked questions</h2><details><summary>Which security headers matter most?</summary><p>Start with an HTTPS redirect and Strict-Transport-Security (HSTS), then X-Content-Type-Options: nosniff, clickjacking protection (CSP frame-ancestors or X-Frame-Options), and Referrer-Policy. A Content-Security-Policy gives the most protection against cross-site scripting, but takes the most care to set up.</p></details><details><summary>How do I add security headers?</summary><p>It depends on your host. Cloudflare: Transform Rules > Modify Response Header. Netlify: a _headers file. Vercel: headers in vercel.json. Nginx: add_header lines. Apache: Header set in .htaccess. WordPress hosts often have a security plugin that adds them.</p></details><details><summary>Will a Content-Security-Policy break my site?</summary><p>It can, if it blocks scripts you rely on. Start with the Content-Security-Policy-Report-Only header to see what would be blocked, then switch to enforcing. StackGrade counts report-only as a warning.</p></details><details><summary>Why does it say &quot;Not checked: HTTP 403&quot;?</summary><p>The site answered the scanner with an error, which usually means bot protection. The headers in an error page are often different from the real site, so we do not grade them.</p></details><details><summary>Is X-XSS-Protection still needed?</summary><p>No. Modern browsers removed the XSS auditor, and Mozilla dropped the test. Use a Content-Security-Policy instead.</p></details></section>
+  <section id="how" class="how">
+    <h2>How StackGrade works</h2>
+    <div class="cols">
+      <div><h3>Email authentication · 50 pts</h3><p>SPF (including the 10-lookup limit), DMARC policy, DKIM keys at common selectors, and MX. These decide whether Gmail and Yahoo trust your mail, and whether scammers can spoof you.</p></div>
+      <div><h3>Website security · 35 pts</h3><p>HTTPS redirect, HSTS, Content-Security-Policy, clickjacking protection, X-Content-Type-Options, Referrer-Policy and cookie flags, using Mozilla's public HTTP Observatory scan.</p></div>
+      <div><h3>Domain health · 15 pts</h3><p>Expiry date and registrar transfer lock from the official registry (RDAP). Domain age, email provider, tech stack and hiring signals are shown but not scored.</p></div>
+    </div>
+    <h3>Honest by design</h3>
+    <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
+    <h3>Privacy</h3>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+<script type="module" src="/stackgrade/assets/app.js"></script>
+</body>
+</html>

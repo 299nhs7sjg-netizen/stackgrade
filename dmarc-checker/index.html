@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free DMARC checker: test your DMARC record and policy | StackGrade</title>
+<meta name="description" content="Check any domain's DMARC record in seconds: policy (none, quarantine, reject), reporting address, pct and subdomain policy, with a plain-English fix and a copy-paste record.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/dmarc-checker/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="Free DMARC checker: test your DMARC record and policy | StackGrade">
+<meta property="og:description" content="Check any domain's DMARC record in seconds: policy (none, quarantine, reject), reporting address, pct and subdomain policy, with a plain-English fix and a copy-paste record.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/dmarc-checker/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/dmarc.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade DMARC check","url":"https://299nhs7sjg-netizen.github.io/stackgrade/dmarc-checker/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Check any domain's DMARC record in seconds: policy (none, quarantine, reject), reporting address, pct and subdomain policy, with a plain-English fix and a copy-paste record."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What is DMARC?","acceptedAnswer":{"@type":"Answer","text":"DMARC (Domain-based Message Authentication, Reporting and Conformance) is a DNS TXT record at _dmarc.yourdomain.com. It tells receiving mail servers what to do with messages that claim to be from your domain but fail SPF and DKIM alignment: deliver them (p=none), send them to spam (p=quarantine) or block them (p=reject). It also tells them where to send reports."}},{"@type":"Question","name":"Do I need DMARC for Gmail and Yahoo?","acceptedAnswer":{"@type":"Answer","text":"Yes, if you send in bulk. Since 2024, Google and Yahoo require bulk senders (roughly 5,000+ messages a day to their users) to publish a DMARC record (p=none is the minimum), plus SPF and DKIM. Smaller senders must have SPF or DKIM, and DMARC is strongly recommended."}},{"@type":"Question","name":"Is p=none good enough?","acceptedAnswer":{"@type":"Answer","text":"p=none is a safe first step because it only collects reports. It does not stop anyone from spoofing your domain. Once the reports show that all your real email passes SPF or DKIM, move to p=quarantine and then p=reject."}},{"@type":"Question","name":"What should my first DMARC record look like?","acceptedAnswer":{"@type":"Answer","text":"A common starting point is: v=DMARC1; p=none; rua=mailto:dmarc-reports@yourdomain.com. Use a mailbox you actually read (or a DMARC report service), because reports arrive daily as XML attachments."}},{"@type":"Question","name":"Why does the checker say \"more than one DMARC record\"?","acceptedAnswer":{"@type":"Answer","text":"Receivers ignore DMARC entirely when there are two or more v=DMARC1 TXT records at _dmarc. Merge them into one."}},{"@type":"Question","name":"How long until a DMARC change shows up?","acceptedAnswer":{"@type":"Answer","text":"DNS changes usually appear within minutes. Records can take up to their TTL (often 1 hour, sometimes up to 24 hours) to update everywhere. Use Re-check to run the lookup again."}}]}</script>
+</head>
+<body data-focus="dmarc" data-focus-title="DMARC check">
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero" id="hero">
+    <h1>DMARC checker</h1>
+    <p class="sub">Look up a domain's DMARC record, see whether it actually stops spoofing, and get a copy-paste fix. Free, no signup.</p>
+    <form id="form" class="search" autocomplete="off">
+      <label for="q" class="sr">Domain</label>
+      <input id="q" name="d" type="text" inputmode="url" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required>
+      <button type="submit" id="go">Check</button>
+    </form>
+    <p class="examples">Try: <a href="?d=github.com">github.com</a> <a href="?d=stripe.com">stripe.com</a> <a href="?d=bbc.co.uk">bbc.co.uk</a> <a href="?d=example.com">example.com</a></p>
+    <p id="err" class="err" role="alert" hidden></p>
+    <nav class="tools" aria-label="Checks"><a href="/stackgrade/">Full grade</a><a href="/stackgrade/dmarc-checker/" aria-current="page">DMARC checker</a><a href="/stackgrade/spf-checker/">SPF checker</a><a href="/stackgrade/dkim-checker/">DKIM checker</a><a href="/stackgrade/email-provider-lookup/">Email provider lookup</a><a href="/stackgrade/security-headers-checker/">Security headers checker</a></nav>
+  </section>
+  <section id="result" class="result" hidden aria-live="polite"></section>
+  <section class="seo"><h2>What this DMARC check looks at</h2>
+<p>We read the TXT record at <code>_dmarc.yourdomain.com</code> using public DNS-over-HTTPS. If you enter a subdomain without its own record, we check the organizational domain too, and use its <code>sp=</code> policy if one is set.</p>
+<ul><li><b>Pass:</b> <code>p=reject</code> or <code>p=quarantine</code> covering 100% of mail.</li>
+<li><b>Warning:</b> <code>p=none</code> (monitoring only), or <code>pct</code> below 100.</li>
+<li><b>Fail:</b> no record, more than one record, or an invalid policy.</li></ul>
+<p>The same lookup also runs the rest of the StackGrade checks (SPF, DKIM, security headers and domain expiry), so you see the full picture below.</p></section>
+  <section class="seo faq"><h2>Frequently asked questions</h2><details><summary>What is DMARC?</summary><p>DMARC (Domain-based Message Authentication, Reporting and Conformance) is a DNS TXT record at _dmarc.yourdomain.com. It tells receiving mail servers what to do with messages that claim to be from your domain but fail SPF and DKIM alignment: deliver them (p=none), send them to spam (p=quarantine) or block them (p=reject). It also tells them where to send reports.</p></details><details><summary>Do I need DMARC for Gmail and Yahoo?</summary><p>Yes, if you send in bulk. Since 2024, Google and Yahoo require bulk senders (roughly 5,000+ messages a day to their users) to publish a DMARC record (p=none is the minimum), plus SPF and DKIM. Smaller senders must have SPF or DKIM, and DMARC is strongly recommended.</p></details><details><summary>Is p=none good enough?</summary><p>p=none is a safe first step because it only collects reports. It does not stop anyone from spoofing your domain. Once the reports show that all your real email passes SPF or DKIM, move to p=quarantine and then p=reject.</p></details><details><summary>What should my first DMARC record look like?</summary><p>A common starting point is: <code>v=DMARC1; p=none; rua=mailto:dmarc-reports@yourdomain.com</code>. Use a mailbox you actually read (or a DMARC report service), because reports arrive daily as XML attachments.</p></details><details><summary>Why does the checker say &quot;more than one DMARC record&quot;?</summary><p>Receivers ignore DMARC entirely when there are two or more v=DMARC1 TXT records at _dmarc. Merge them into one.</p></details><details><summary>How long until a DMARC change shows up?</summary><p>DNS changes usually appear within minutes. Records can take up to their TTL (often 1 hour, sometimes up to 24 hours) to update everywhere. Use Re-check to run the lookup again.</p></details></section>
+  <section id="how" class="how">
+    <h2>How StackGrade works</h2>
+    <div class="cols">
+      <div><h3>Email authentication · 50 pts</h3><p>SPF (including the 10-lookup limit), DMARC policy, DKIM keys at common selectors, and MX. These decide whether Gmail and Yahoo trust your mail, and whether scammers can spoof you.</p></div>
+      <div><h3>Website security · 35 pts</h3><p>HTTPS redirect, HSTS, Content-Security-Policy, clickjacking protection, X-Content-Type-Options, Referrer-Policy and cookie flags, using Mozilla's public HTTP Observatory scan.</p></div>
+      <div><h3>Domain health · 15 pts</h3><p>Expiry date and registrar transfer lock from the official registry (RDAP). Domain age, email provider, tech stack and hiring signals are shown but not scored.</p></div>
+    </div>
+    <h3>Honest by design</h3>
+    <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
+    <h3>Privacy</h3>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+<script type="module" src="/stackgrade/assets/app.js"></script>
+</body>
+</html>

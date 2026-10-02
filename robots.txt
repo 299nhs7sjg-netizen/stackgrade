@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /stackgrade/widget/
+
+Sitemap: https://299nhs7sjg-netizen.github.io/stackgrade/sitemap.xml

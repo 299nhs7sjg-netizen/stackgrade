@@ -1,4 +1,9 @@
-import { grade, score, parseInput, GROUPS, WEIGHTS } from './checks.js';
+import { grade, score, parseInput, toUnicode, GROUPS, WEIGHTS } from './checks.js';
+
+const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
+const BODY = document.body.dataset;
+const FOCUS = (BODY.focus || '').split(',').filter(Boolean);
+const WIDGET = BODY.mode === 'widget';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -55,23 +60,30 @@ function render(rep, done) {
         const lt = v == null ? null : v >= 90 ? 'A' : v >= 80 ? 'B' : v >= 70 ? 'C' : v >= 60 ? 'D' : 'F';
         return `<div class="bar"><span>${esc(GROUPS[g])}</span><span class="t"><i style="width:${v ?? 0}%;background:${COLORS[lt] || '#cbd5e1'}"></i></span><span class="n">${v ?? (pendingGroups.includes(g) ? '…' : 'n/a')}</span></div>`;
     }).join('');
-    const shareUrl = `${location.origin}${location.pathname}?d=${encodeURIComponent(rep.domain)}`;
-    const shareText = s.letter ? `${rep.domain} scored ${s.letter} (${s.score}/100) on StackGrade's website & email health check` : `Website & email health check for ${rep.domain}`;
+    const name = rep.display || rep.domain;
+    const shareUrl = WIDGET ? `${SITE}?d=${encodeURIComponent(name)}&ref=widget` : `${location.origin}${location.pathname}?d=${encodeURIComponent(name)}${selParam()}`;
+    const shareText = s.letter ? `${name} scored ${s.letter} (${s.score}/100) on StackGrade's website & email health check` : `Website & email health check for ${name}`;
     let html = `<div class="summary">${ring(s.score, s.letter, provisional)}
-      <div><h2 class="sum-h">${esc(rep.domain)}${provisional ? '<span class="prov">Checking…</span>' : ''}</h2>
+      <div><h2 class="sum-h">${esc(name)}${name !== rep.domain ? ` <small class="puny">(${esc(rep.domain)})</small>` : ''}${provisional ? '<span class="prov">Checking…</span>' : ''}</h2>
       <p class="cov">${s.score == null ? 'Waiting for results…' : `Graded on ${s.coverage} of 100 points.`}${skipped && done ? ` ${skipped} points could not be checked and are left out (see "Not checked" below).` : ''}${provisional && s.score != null ? ' *Provisional until every check finishes.' : ''}</p>
       ${done && s.coverage < 70 ? `<p class="cov"><span class="prov">Partial grade</span> Only ${s.coverage} of 100 points could be checked, so treat this grade with care.</p>` : ''}
       ${rep.org && rep.org !== rep.domain ? `<p class="cov">You entered a subdomain. Email and website checks are for ${esc(rep.domain)}; registration checks are for ${esc(rep.org)}.</p>` : ''}
       <div class="bars">${bars}</div>
-      ${done ? `<div class="share"><button class="btn" type="button" id="copylink" data-url="${esc(shareUrl)}">Copy link</button>
+      ${done && WIDGET ? `<div class="share"><a class="btn" target="_blank" rel="noopener" href="${esc(shareUrl)}">Open the full report</a></div>` : ''}
+      ${done && !WIDGET ? `<div class="share"><button class="btn" type="button" id="copylink" data-url="${esc(shareUrl)}">Copy link</button>
         ${navigator.share ? '<button class="btn" type="button" id="nshare">Share</button>' : ''}
         <a class="btn" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}">Post on X</a>
         <a class="btn" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}">LinkedIn</a>
         ${s.letter ? '<button class="btn" type="button" id="card">Download grade card</button>' : ''}
         <button class="btn" type="button" id="rerun">Re-check</button></div>` : ''}
       </div></div>`;
+    if (FOCUS.length) {
+        const fc = FOCUS.map((id) => rep.checks.find((c) => c.id === id)).filter(Boolean);
+        const spot = `<section class="group spot"><h2>${esc(BODY.focusTitle || 'Result')} <small>${esc(name)}</small></h2>${fc.map(checkCard).join('')}${fc.length < FOCUS.length && !done ? '<div class="pending"><span class="spin"></span>Checking…</div>' : ''}</section>`;
+        html = spot + `<h2 class="full-h">Full StackGrade for ${esc(name)}</h2>` + html;
+    }
     for (const g of ORDER) {
-        const cs = rep.checks.filter((c) => c.group === g).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+        const cs = rep.checks.filter((c) => c.group === g && !FOCUS.includes(c.id)).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
         const gs = s.groups?.[g];
         const head = GROUP_PTS[g] ? `<small>${gs?.score != null ? `${gs.score}/100` : ''}${GROUP_PTS[g] ? ` · ${GROUP_PTS[g]} pts of grade` : ''}</small>` : '<small>not scored</small>';
         html += `<section class="group"><h2>${esc(GROUPS[g])} ${head}</h2>${cs.map(checkCard).join('')}`;
@@ -80,13 +92,22 @@ function render(rep, done) {
     }
     if (done && rep.observatory?.url) html += `<p class="d" style="color:var(--mut);font-size:13px;margin-top:14px">Website security data: <a href="${esc(rep.observatory.url)}" target="_blank" rel="noopener">Mozilla HTTP Observatory report for ${esc(rep.observatory.host)}</a>. Grade calculated by StackGrade v${esc(rep.version)} on ${esc(new Date(rep.finishedAt).toLocaleString())}.</p>`;
     el.innerHTML = html;
+    postHeight();
+}
+function postHeight() {
+    if (WIDGET && window.parent !== window) window.parent.postMessage({ type: 'stackgrade:height', height: document.documentElement.scrollHeight }, '*');
+}
+function selParam() {
+    const v = document.querySelector('#sel')?.value.trim();
+    return v ? `&s=${encodeURIComponent(v)}` : '';
 }
 
 function renderNonexistent(r) {
     const el = $('#result');
     el.hidden = false;
     const reg = r.registered === false ? 'The registry says it is <b>not registered</b>, so it may be available to buy.' : r.registered ? 'The registry lists it as registered, but it has no DNS records (it is not set up).' : '';
-    el.innerHTML = `<div class="notice"><h2 class="sum-h">${esc(r.domain)}</h2><p><b>This domain does not exist in DNS</b>, so there is nothing to grade. ${reg}</p><p class="d" style="color:var(--mut)">Check the spelling, or try the main domain (for example <code>company.com</code> instead of a subdomain).</p></div>`;
+    el.innerHTML = `<div class="notice"><h2 class="sum-h">${esc(r.display || r.domain)}</h2><p><b>This domain does not exist in DNS</b>, so there is nothing to grade. ${reg}</p><p class="d" style="color:var(--mut)">Check the spelling, or try the main domain (for example <code>company.com</code> instead of a subdomain).</p></div>`;
+    postHeight();
 }
 
 async function run(input, { push = true, fresh = false } = {}) {
@@ -94,22 +115,24 @@ async function run(input, { push = true, fresh = false } = {}) {
     const err = $('#err');
     if (p.error) { err.textContent = p.error; err.hidden = false; $('#result').hidden = true; return; }
     err.hidden = true;
-    $('#q').value = p.domain;
-    const url = `${location.pathname}?d=${encodeURIComponent(p.domain)}`;
-    if (push && location.search !== `?d=${encodeURIComponent(p.domain)}`) history.pushState({ d: p.domain }, '', url);
-    document.title = `${p.domain} health grade · StackGrade`;
+    const name = toUnicode(p.domain);
+    $('#q').value = name;
+    const selectors = (document.querySelector('#sel')?.value || '').split(/[\s,]+/).filter(Boolean).slice(0, 5);
+    const search = `?d=${encodeURIComponent(name)}${selParam()}`;
+    if (push && location.search !== search && !WIDGET) history.pushState({ d: name }, '', `${location.pathname}${search}`);
+    if (!WIDGET) document.title = `${name}: ${BODY.focusTitle || 'health grade'} · StackGrade`;
     const id = ++runId;
     $('#go').disabled = true;
-    render({ domain: p.domain, checks: [] }, false);
-    $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    render({ domain: p.domain, display: name, checks: [] }, false);
+    if (!WIDGET) $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
-        const rep = await grade(p.domain, { fresh, onUpdate: (r) => { if (id === runId) render(r, false); } });
+        const rep = await grade(p.domain, { fresh, dkimSelectors: selectors, onUpdate: (r) => { if (id === runId) render(r, false); } });
         if (id !== runId) return;
         if (rep.error) { err.textContent = rep.error; err.hidden = false; $('#result').hidden = true; return; }
         if (rep.nonexistent) { renderNonexistent(rep); return; }
         current = rep;
         render(rep, true);
-        document.title = `${rep.domain}: ${rep.letter} (${rep.score}/100) · StackGrade`;
+        if (!WIDGET) document.title = `${rep.display}: ${BODY.focusTitle ? `${BODY.focusTitle} · ` : ''}${rep.letter} (${rep.score}/100) · StackGrade`;
     } catch (e) {
         if (id === runId) { err.textContent = `Something went wrong: ${e.message}. Please try again.`; err.hidden = false; }
     } finally { if (id === runId) $('#go').disabled = false; }
@@ -127,8 +150,8 @@ function gradeCard(rep) {
     x.fillStyle = '#cbd5e1'; x.font = '600 36px system-ui, sans-serif'; x.fillText(`${rep.score}/100`, 250, 410);
     x.textAlign = 'left'; x.fillStyle = '#fff';
     let size = 64; x.font = `bold ${size}px system-ui, sans-serif`;
-    while (x.measureText(rep.domain).width > 640 && size > 28) { size -= 4; x.font = `bold ${size}px system-ui, sans-serif`; }
-    x.fillText(rep.domain, 500, 170);
+    while (x.measureText(rep.display || rep.domain).width > 640 && size > 28) { size -= 4; x.font = `bold ${size}px system-ui, sans-serif`; }
+    x.fillText(rep.display || rep.domain, 500, 170);
     x.font = '600 30px system-ui, sans-serif';
     ['email', 'web', 'domain'].forEach((g, i) => {
         const v = rep.groups?.[g]?.score; const y = 270 + i * 70;
@@ -148,12 +171,21 @@ document.addEventListener('click', async (e) => {
         const text = t.dataset.copy || t.dataset.url;
         try { await navigator.clipboard.writeText(text); const o = t.textContent; t.textContent = 'Copied!'; setTimeout(() => { t.textContent = o; }, 1500); } catch { prompt('Copy this:', text); }
     } else if (t.id === 'nshare' && current) {
-        navigator.share({ title: `${current.domain}: ${current.letter} on StackGrade`, url: `${location.origin}${location.pathname}?d=${encodeURIComponent(current.domain)}` }).catch(() => {});
+        navigator.share({ title: `${current.display}: ${current.letter} on StackGrade`, url: `${location.origin}${location.pathname}?d=${encodeURIComponent(current.display)}${selParam()}` }).catch(() => {});
     } else if (t.id === 'card' && current) gradeCard(current);
     else if (t.id === 'rerun' && current) run(current.domain, { push: false, fresh: true });
-    else if (t.matches('.examples a')) { e.preventDefault(); run(new URL(t.href).searchParams.get('d')); }
+    else if (t.matches('.examples a')) { e.preventDefault(); run(new URL(t.href, location.href).searchParams.get('d')); }
 });
 $('#form').addEventListener('submit', (e) => { e.preventDefault(); run($('#q').value); });
 window.addEventListener('popstate', () => { const d = new URLSearchParams(location.search).get('d'); if (d) run(d, { push: false }); else { $('#result').hidden = true; $('#q').value = ''; } });
-const initial = new URLSearchParams(location.search).get('d');
+const params = new URLSearchParams(location.search);
+if (params.get('s') && document.querySelector('#sel')) document.querySelector('#sel').value = params.get('s').slice(0, 200);
+const initial = params.get('d');
 if (initial) run(initial, { push: false });
+if (WIDGET) { new ResizeObserver(postHeight).observe(document.body); postHeight(); }
+if (WIDGET) {
+    const agency = (params.get('agency') || '').trim().slice(0, 60);
+    if (agency) { const el = document.querySelector('#wby'); if (el) { el.textContent = `by ${agency}`; el.hidden = false; } }
+    const color = params.get('color') || '';
+    if (/^[0-9a-f]{6}$/i.test(color)) document.documentElement.style.setProperty('--acc', `#${color}`);
+}

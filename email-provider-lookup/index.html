@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>What email provider does a domain use? Free MX lookup | StackGrade</title>
+<meta name="description" content="Find out who hosts a company's email (Google Workspace, Microsoft 365, Zoho, Proton and more) from its MX records, plus which services its SPF record lets send as it.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/email-provider-lookup/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="What email provider does a domain use? Free MX lookup | StackGrade">
+<meta property="og:description" content="Find out who hosts a company's email (Google Workspace, Microsoft 365, Zoho, Proton and more) from its MX records, plus which services its SPF record lets send as it.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/email-provider-lookup/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/provider.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade Email provider","url":"https://299nhs7sjg-netizen.github.io/stackgrade/email-provider-lookup/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Find out who hosts a company's email (Google Workspace, Microsoft 365, Zoho, Proton and more) from its MX records, plus which services its SPF record lets send as it."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How can I tell if a company uses Google Workspace or Microsoft 365?","acceptedAnswer":{"@type":"Answer","text":"Look at its MX records. Google Workspace MX hosts end in google.com or googlemail.com (for example aspmx.l.google.com or smtp.google.com). Microsoft 365 MX hosts end in mail.protection.outlook.com."}},{"@type":"Question","name":"Why does it say a security gateway?","acceptedAnswer":{"@type":"Answer","text":"Many larger companies route incoming mail through a filtering service such as Proofpoint or Mimecast first. Their MX records point to the gateway, so DNS does not reveal the actual mailbox provider."}},{"@type":"Question","name":"Is this information private?","acceptedAnswer":{"@type":"Answer","text":"No. MX and SPF records are public DNS records that every mail server on the internet reads to deliver email. This tool reads only those public records."}},{"@type":"Question","name":"What does \"no mail servers\" mean?","acceptedAnswer":{"@type":"Answer","text":"The domain has no MX records, so mail sent to it will not be delivered. A \"null MX\" (0 .) means the owner has explicitly stated the domain does not receive email."}}]}</script>
+</head>
+<body data-focus="provider,mx" data-focus-title="Email provider">
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero" id="hero">
+    <h1>What email provider does this domain use?</h1>
+    <p class="sub">See who hosts a domain's email from its MX records, and which services are allowed to send as it. Free, no signup.</p>
+    <form id="form" class="search" autocomplete="off">
+      <label for="q" class="sr">Domain</label>
+      <input id="q" name="d" type="text" inputmode="url" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required>
+      <button type="submit" id="go">Check</button>
+    </form>
+    <p class="examples">Try: <a href="?d=stripe.com">stripe.com</a> <a href="?d=github.com">github.com</a> <a href="?d=spiegel.de">spiegel.de</a> <a href="?d=linear.app">linear.app</a></p>
+    <p id="err" class="err" role="alert" hidden></p>
+    <nav class="tools" aria-label="Checks"><a href="/stackgrade/">Full grade</a><a href="/stackgrade/dmarc-checker/">DMARC checker</a><a href="/stackgrade/spf-checker/">SPF checker</a><a href="/stackgrade/dkim-checker/">DKIM checker</a><a href="/stackgrade/email-provider-lookup/" aria-current="page">Email provider lookup</a><a href="/stackgrade/security-headers-checker/">Security headers checker</a></nav>
+  </section>
+  <section id="result" class="result" hidden aria-live="polite"></section>
+  <section class="seo"><h2>How we identify the email provider</h2>
+<p>The <b>MX records</b> say which servers receive mail for a domain. For example, <code>aspmx.l.google.com</code> means Google Workspace, and <code>*.mail.protection.outlook.com</code> means Microsoft 365. If the MX points to a security gateway (Proofpoint, Mimecast, Barracuda), the mailbox provider behind it is not visible in DNS, and we say so.</p>
+<p>The <b>SPF record</b> lists services allowed to send as the domain, such as SendGrid, Mailchimp, Salesforce or HubSpot. It shows who <i>may</i> send, not who actually does.</p></section>
+  <section class="seo faq"><h2>Frequently asked questions</h2><details><summary>How can I tell if a company uses Google Workspace or Microsoft 365?</summary><p>Look at its MX records. Google Workspace MX hosts end in google.com or googlemail.com (for example aspmx.l.google.com or smtp.google.com). Microsoft 365 MX hosts end in mail.protection.outlook.com.</p></details><details><summary>Why does it say a security gateway?</summary><p>Many larger companies route incoming mail through a filtering service such as Proofpoint or Mimecast first. Their MX records point to the gateway, so DNS does not reveal the actual mailbox provider.</p></details><details><summary>Is this information private?</summary><p>No. MX and SPF records are public DNS records that every mail server on the internet reads to deliver email. This tool reads only those public records.</p></details><details><summary>What does &quot;no mail servers&quot; mean?</summary><p>The domain has no MX records, so mail sent to it will not be delivered. A "null MX" (0 .) means the owner has explicitly stated the domain does not receive email.</p></details></section>
+  <section id="how" class="how">
+    <h2>How StackGrade works</h2>
+    <div class="cols">
+      <div><h3>Email authentication · 50 pts</h3><p>SPF (including the 10-lookup limit), DMARC policy, DKIM keys at common selectors, and MX. These decide whether Gmail and Yahoo trust your mail, and whether scammers can spoof you.</p></div>
+      <div><h3>Website security · 35 pts</h3><p>HTTPS redirect, HSTS, Content-Security-Policy, clickjacking protection, X-Content-Type-Options, Referrer-Policy and cookie flags, using Mozilla's public HTTP Observatory scan.</p></div>
+      <div><h3>Domain health · 15 pts</h3><p>Expiry date and registrar transfer lock from the official registry (RDAP). Domain age, email provider, tech stack and hiring signals are shown but not scored.</p></div>
+    </div>
+    <h3>Honest by design</h3>
+    <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
+    <h3>Privacy</h3>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+  </section>
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+<script type="module" src="/stackgrade/assets/app.js"></script>
+</body>
+</html>
