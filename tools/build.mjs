@@ -211,10 +211,12 @@ add({ slug: 'agency-widget/', og: 'widget', showHow: false,
 <code class="snippet">&lt;script src="${SITE}widget.js" data-agency="Your Agency Name" data-color="0f172a" async&gt;&lt;/script&gt;</code>
 <p><b>Or a plain iframe:</b></p>
 <code class="snippet">&lt;iframe src="${SITE}widget/?agency=Your%20Agency%20Name" title="Website &amp; email health check" style="width:100%;max-width:760px;height:900px;border:0" loading="lazy"&gt;&lt;/iframe&gt;</code>
+<p>By default the widget is <b>compact</b>: the grade, the category scores and the top 5 problems with fixes, plus a "See full report" link to StackGrade (about 900px tall or less on desktop).</p>
 <h3>Options</h3>
 <ul><li><code>data-agency</code> / <code>?agency=</code>: your name, shown as "by Your Agency Name" (up to 60 characters).</li>
 <li><code>data-color</code> / <code>?color=</code>: button color as a 6-digit hex value without the #.</li>
-<li><code>data-domain</code> / <code>?d=</code>: optional domain to grade straight away.</li></ul>
+<li><code>data-domain</code> / <code>?d=</code>: optional domain to grade straight away.</li>
+<li><code>data-mode="full"</code> / <code>?mode=full</code>: show the full report inside the widget instead of the compact view.</li></ul>
 <p>The free widget shows "Powered by StackGrade" with a link back. Lead capture (collecting the visitor's email for you) is not available yet.</p>
 <h2>2. Live demo</h2>
 <iframe src="${demoSrc}" title="StackGrade widget demo" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff" loading="lazy"></iframe>
@@ -248,12 +250,7 @@ fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="
 ${indexable.map((p) => `  <url><loc>${SITE}${p.slug}</loc><lastmod>${TODAY}</lastmod></url>`).join('\n')}
 </urlset>
 `);
-fs.writeFileSync(path.join(ROOT, 'robots.txt'), `User-agent: *
-Allow: /
-Disallow: /stackgrade/widget/
-
-Sitemap: ${SITE}sitemap.xml
-`);
+// robots.txt lives at the host root (299nhs7sjg-netizen.github.io repo), which lists this sitemap.
 fs.writeFileSync(path.join(ROOT, 'llms.txt'), `# StackGrade
 
 > StackGrade is a free website and email health grader. Enter a domain and get a 0-100 grade (A-F) in seconds, covering email authentication (SPF, DKIM, DMARC, MX), website security headers (via Mozilla HTTP Observatory) and domain health (expiry and transfer lock from registry RDAP), with plain-English fixes. No signup, no server: checks run in the visitor's browser. Checks that cannot run are shown as "Not checked" and excluded from the score.

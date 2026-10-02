@@ -8,7 +8,7 @@ for (const [d, vp, file] of [['stripe.com', { width: 1280, height: 900 }, 'desk'
   page.on('pageerror', (e) => errors.push(`${d}: ${e.message}`));
   const t0 = Date.now();
   await page.goto(`${base}?d=${d}`);
-  await page.waitForSelector('#rerun, .notice', { timeout: 90000 }).catch(() => errors.push(`${d}: timeout`));
+  await page.waitForSelector('.rerun, .notice', { timeout: 90000 }).catch(() => errors.push(`${d}: timeout`));
   console.log(d, 'done in', Date.now() - t0, 'ms', await page.title());
   await page.screenshot({ path: `/tmp/ui-${file}.png`, fullPage: true });
   await page.close();

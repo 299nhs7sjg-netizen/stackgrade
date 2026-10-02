@@ -100,3 +100,12 @@ body[data-mode=widget] .hero h1{font-size:22px}
 body[data-mode=widget] .sub{font-size:15px;margin-bottom:12px}
 .wfoot{text-align:center;font-size:13px;color:var(--mut);padding:10px 0 14px}
 .wfoot a{color:var(--mut);font-weight:700}
+.btn-acc{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:700}
+.btn-acc:hover{border-color:var(--acc);opacity:.92}
+.again{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+.again h2{font-size:18px;margin:0}
+.check.mini{padding:10px 12px;margin-bottom:8px}
+.check.mini p{font-size:15px}
+.seefull{text-align:center;margin:14px 0 6px}
+.seefull .btn{font-size:16px;padding:10px 18px}
+body[data-mode=widget] .result{margin-bottom:6px}

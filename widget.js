@@ -1,5 +1,6 @@
 /* StackGrade embeddable widget v0. Usage:
-   <script src="https://299nhs7sjg-netizen.github.io/stackgrade/widget.js" data-agency="Your Agency" data-color="0f172a" async></script> */
+   <script src="https://299nhs7sjg-netizen.github.io/stackgrade/widget.js" data-agency="Your Agency" data-color="0f172a" async></script>
+   Compact by default (grade + top 5 problems); add data-mode="full" for the full report. */
 (function () {
   var ORIGIN = 'https://299nhs7sjg-netizen.github.io';
   var BASE = ORIGIN + '/stackgrade/widget/';
@@ -13,6 +14,7 @@
   if (agency) q.push('agency=' + encodeURIComponent(agency));
   if (/^[0-9a-fA-F]{6}$/.test(color)) q.push('color=' + color);
   if (domain) q.push('d=' + encodeURIComponent(domain));
+  if ((s.getAttribute('data-mode') || '').toLowerCase() === 'full') q.push('mode=full');
   var f = document.createElement('iframe');
   f.src = BASE + (q.length ? '?' + q.join('&') : '');
   f.title = 'Website & email health check (StackGrade)';

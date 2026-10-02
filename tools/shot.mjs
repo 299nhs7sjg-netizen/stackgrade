@@ -3,7 +3,7 @@ const [d, w, h, out, scroll] = process.argv.slice(2);
 const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
 const page = await browser.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 1 });
 await page.goto(`http://localhost:8765/${d ? `?d=${d}` : ''}`);
-if (d) await page.waitForSelector('#rerun, .notice', { timeout: 90000 });
+if (d) await page.waitForSelector('.rerun, .notice', { timeout: 90000 });
 if (scroll) await page.evaluate((y) => window.scrollTo(0, y), +scroll); else await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(400);
 await page.screenshot({ path: out });

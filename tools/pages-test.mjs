@@ -19,7 +19,7 @@ for (const [vpName, vp] of [['desk', { width: 1280, height: 900 }], ['mob', { wi
     p.on('pageerror', (e) => errs.push(e.message));
     const t0 = Date.now();
     await p.goto(`${BASE}${slug}?d=${q}`);
-    await p.waitForSelector('#rerun, .notice, a.btn[href*="ref=widget"]', { timeout: 100000 }).catch(() => errs.push('timeout'));
+    await p.waitForSelector('.rerun, .notice, a.btn[href*="ref=widget"]', { timeout: 100000 }).catch(() => errs.push('timeout'));
     const info = await p.evaluate(() => ({
       title: document.title, h1: document.querySelector('h1')?.textContent, q: document.querySelector('#q')?.value,
       sumh: document.querySelector('.sum-h')?.textContent,

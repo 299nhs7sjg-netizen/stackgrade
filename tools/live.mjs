@@ -11,7 +11,7 @@ async function one(d) {
   let firstGrade = null;
   await page.goto(`${base}?d=${encodeURIComponent(d)}`);
   const poll = setInterval(async () => { if (firstGrade == null) { const t = await page.textContent('.ring .l span').catch(() => null); if (t && /^\d/.test(t)) firstGrade = Date.now() - t0; } }, 250);
-  await page.waitForSelector('#rerun, .notice, #err:not([hidden])', { timeout: 100000 }).catch(() => errs.push('timeout'));
+  await page.waitForSelector('.rerun, .notice, #err:not([hidden])', { timeout: 100000 }).catch(() => errs.push('timeout'));
   clearInterval(poll);
   const ms = Date.now() - t0;
   const data = await page.evaluate(() => ({

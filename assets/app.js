@@ -4,6 +4,7 @@ const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const BODY = document.body.dataset;
 const FOCUS = (BODY.focus || '').split(',').filter(Boolean);
 const WIDGET = BODY.mode === 'widget';
+const COMPACT = WIDGET && new URLSearchParams(location.search).get('mode') !== 'full';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -69,14 +70,25 @@ function render(rep, done) {
       ${done && s.coverage < 70 ? `<p class="cov"><span class="prov">Partial grade</span> Only ${s.coverage} of 100 points could be checked, so treat this grade with care.</p>` : ''}
       ${rep.org && rep.org !== rep.domain ? `<p class="cov">You entered a subdomain. Email and website checks are for ${esc(rep.domain)}; registration checks are for ${esc(rep.org)}.</p>` : ''}
       <div class="bars">${bars}</div>
-      ${done && WIDGET ? `<div class="share"><a class="btn" target="_blank" rel="noopener" href="${esc(shareUrl)}">Open the full report</a></div>` : ''}
-      ${done && !WIDGET ? `<div class="share"><button class="btn" type="button" id="copylink" data-url="${esc(shareUrl)}">Copy link</button>
-        ${navigator.share ? '<button class="btn" type="button" id="nshare">Share</button>' : ''}
-        <a class="btn" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}">Post on X</a>
-        <a class="btn" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}">LinkedIn</a>
-        ${s.letter ? '<button class="btn" type="button" id="card">Download grade card</button>' : ''}
-        <button class="btn" type="button" id="rerun">Re-check</button></div>` : ''}
+      ${done && WIDGET && !COMPACT ? `<div class="share"><a class="btn" target="_blank" rel="noopener" href="${esc(shareUrl)}">Open the full report</a></div>` : ''}
+      ${done && !WIDGET ? shareRow(shareUrl, shareText, s.letter, true) : ''}
       </div></div>`;
+    if (COMPACT) {
+        const probs = rep.checks.filter((c) => (c.status === 'fail' || c.status === 'warn') && WEIGHTS[c.id])
+            .map((c) => ({ c, lost: WEIGHTS[c.id] * (1 - (c.points || 0)) }))
+            .sort((a, b) => b.lost - a.lost).slice(0, 5);
+        if (done) {
+            html += probs.length
+                ? `<section class="group"><h2>Top ${probs.length === 1 ? 'problem' : `${probs.length} problems`} to fix <small>by points lost</small></h2>${probs.map(({ c, lost }) => `<article class="check ${c.status} mini">
+                    <div class="ch"><h3>${esc(c.title)}</h3><span class="pill ${c.status}">${LABEL[c.status]} · −${Math.round(lost * 10) / 10}</span></div>
+                    <p>${esc(c.summary)}</p>${c.fix ? `<details><summary>How to fix</summary><p>${esc(c.fix)}</p>${c.record ? codeBlock(c.record) : ''}</details>` : ''}</article>`).join('')}</section>`
+                : '<section class="group"><h2>No problems found <small>in the checks that ran</small></h2></section>';
+            html += `<p class="seefull"><a class="btn btn-acc" target="_blank" rel="noopener" href="${esc(shareUrl)}">See full report →</a></p>`;
+        } else html += '<div class="pending"><span class="spin"></span>Checking email, website security and domain…</div>';
+        el.innerHTML = html;
+        postHeight();
+        return;
+    }
     if (FOCUS.length) {
         const fc = FOCUS.map((id) => rep.checks.find((c) => c.id === id)).filter(Boolean);
         const spot = `<section class="group spot"><h2>${esc(BODY.focusTitle || 'Result')} <small>${esc(name)}</small></h2>${fc.map(checkCard).join('')}${fc.length < FOCUS.length && !done ? '<div class="pending"><span class="spin"></span>Checking…</div>' : ''}</section>`;
@@ -91,8 +103,18 @@ function render(rep, done) {
         html += '</section>';
     }
     if (done && rep.observatory?.url) html += `<p class="d" style="color:var(--mut);font-size:13px;margin-top:14px">Website security data: <a href="${esc(rep.observatory.url)}" target="_blank" rel="noopener">Mozilla HTTP Observatory report for ${esc(rep.observatory.host)}</a>. Grade calculated by StackGrade v${esc(rep.version)} on ${esc(new Date(rep.finishedAt).toLocaleString())}.</p>`;
+    if (done && !WIDGET) html += `<section class="again"><h2>Share this report or check another domain</h2>${shareRow(shareUrl, shareText, s.letter, false)}</section>`;
     el.innerHTML = html;
     postHeight();
+}
+function shareRow(url, text, letterVal, top) {
+    return `<div class="share"><button class="btn btn-acc another" type="button">Check another domain</button>
+        <button class="btn copylink" type="button" data-url="${esc(url)}">Copy link</button>
+        ${navigator.share ? '<button class="btn nshare" type="button">Share</button>' : ''}
+        <a class="btn" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}">Post on X</a>
+        <a class="btn" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}">LinkedIn</a>
+        ${top && letterVal ? '<button class="btn card" type="button">Download grade card</button>' : ''}
+        ${top ? '<button class="btn rerun" type="button">Re-check</button>' : ''}</div>`;
 }
 function postHeight() {
     if (WIDGET && window.parent !== window) window.parent.postMessage({ type: 'stackgrade:height', height: document.documentElement.scrollHeight }, '*');
@@ -167,13 +189,16 @@ function gradeCard(rep) {
 document.addEventListener('click', async (e) => {
     const t = e.target.closest('button, a');
     if (!t) return;
-    if (t.classList.contains('copy') || t.id === 'copylink') {
+    if (t.classList.contains('copy') || t.classList.contains('copylink')) {
         const text = t.dataset.copy || t.dataset.url;
         try { await navigator.clipboard.writeText(text); const o = t.textContent; t.textContent = 'Copied!'; setTimeout(() => { t.textContent = o; }, 1500); } catch { prompt('Copy this:', text); }
-    } else if (t.id === 'nshare' && current) {
+    } else if (t.classList.contains('nshare') && current) {
         navigator.share({ title: `${current.display}: ${current.letter} on StackGrade`, url: `${location.origin}${location.pathname}?d=${encodeURIComponent(current.display)}${selParam()}` }).catch(() => {});
-    } else if (t.id === 'card' && current) gradeCard(current);
-    else if (t.id === 'rerun' && current) run(current.domain, { push: false, fresh: true });
+    } else if (t.classList.contains('card') && current) gradeCard(current);
+    else if (t.classList.contains('rerun') && current) run(current.domain, { push: false, fresh: true });
+    else if (t.classList.contains('another')) {
+        const q = $('#q'); q.value = ''; window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => q.focus({ preventScroll: true }), 300);
+    }
     else if (t.matches('.examples a')) { e.preventDefault(); run(new URL(t.href, location.href).searchParams.get('d')); }
 });
 $('#form').addEventListener('submit', (e) => { e.preventDefault(); run($('#q').value); });
