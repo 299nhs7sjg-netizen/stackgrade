@@ -52,7 +52,7 @@
     <h3>Honest by design</h3>
     <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
     <h3>Privacy</h3>
-    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing. Page views are counted with <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a> (open source, no cookies, no personal data); only the page path is sent, never the domain you check.</p>
   </section>
 </main>
 <footer class="foot">
@@ -60,5 +60,7 @@
   <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
 </footer>
 <script type="module" src="/stackgrade/assets/app.js"></script>
+<script>window.goatcounter={path:function(){return location.pathname}};</script>
+<script data-goatcounter="https://greentools.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>

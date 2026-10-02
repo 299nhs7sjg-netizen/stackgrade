@@ -27,8 +27,16 @@ const HOW = `<section id="how" class="how">
     <h3>Honest by design</h3>
     <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
     <h3>Privacy</h3>
-    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing. Page views are counted with <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a> (open source, no cookies, no personal data); only the page path is sent, never the domain you check.</p>
   </section>`;
+
+// GoatCounter (cookieless) on the shared greentools site; paths are /stackgrade/... Only the path is sent (no ?d= domain).
+// The widget counts as /stackgrade/widget-embed when framed (agency sites + our own demo), /stackgrade/widget when opened directly.
+const GC = (mode) => mode === 'widget'
+    ? `<script>window.goatcounter={allow_frame:true,path:function(){return location.pathname.replace(/\\/?$/,'')+(window.self!==window.top?'-embed':'')}};</script>
+<script data-goatcounter="https://greentools.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>`
+    : `<script>window.goatcounter={path:function(){return location.pathname}};</script>
+<script data-goatcounter="https://greentools.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>`;
 
 function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], intro = '', extraTool = '', og, examples = ['github.com', 'stripe.com', 'bbc.co.uk', 'example.com'], noindex = false, body, mode, showHow = true }) {
     const url = SITE + slug;
@@ -93,6 +101,7 @@ ${nav}
 </main>
 ${footer}
 ${body && !body.includes('id="form"') ? '' : `<script type="module" src="${P}assets/app.js"></script>`}
+${GC(mode)}
 </body>
 </html>
 `;

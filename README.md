@@ -52,7 +52,7 @@ Everything runs in the visitor's browser. The browser calls these public, CORS-e
 | HTTPS redirect, HSTS, CSP, clickjacking, X-Content-Type-Options, Referrer-Policy, cookies; response headers for stack detection | [Mozilla HTTP Observatory](https://developer.mozilla.org/en-US/observatory) public API v2 (`POST /api/v2/scan`, `GET /api/v2/analyze`). Its scan history is public. |
 | Hiring signal | Public job-board APIs: Greenhouse, Lever, Ashby, Workable |
 
-We do not use CORS proxies. There is no StackGrade server, no database and no analytics.
+We do not use CORS proxies. There is no StackGrade server and no database. Page views are counted with [GoatCounter](https://www.goatcounter.com/) (open source, cookieless, no personal data) under paths `/stackgrade/...`; only the page path is sent, never the domain being checked. The widget counts as `/stackgrade/widget-embed` when framed.
 
 ## Scoring rubric
 
