@@ -41,3 +41,20 @@ test('stack detection from headers + DNS', () => {
     for (const n of ['Google Workspace', 'SendGrid', 'Cloudflare DNS']) assert.ok(names.includes(n), n);
     assert.equal(leaks.length, 2);
 });
+import { toUnicode } from '../assets/checks.js';
+import { badgeState, badgeSvg } from '../tools/badges.mjs';
+test('toUnicode decodes punycode labels only', () => {
+    assert.equal(toUnicode('xn--bcher-kva.de'), 'bücher.de');
+    assert.equal(toUnicode('www.xn--mnchen-3ya.de'), 'www.münchen.de');
+    assert.equal(toUnicode('example.com'), 'example.com');
+    assert.equal(toUnicode('xn--!!.com'), 'xn--!!.com');
+});
+test('badge state: verified, below claim, unverified', () => {
+    const e = { domain: 'x.com', claim: 'A' };
+    assert.equal(badgeState(e, { letter: 'A', score: 95, coverage: 100, groups: {} }).status, 'verified');
+    const low = badgeState(e, { letter: 'B', score: 85, coverage: 100, groups: {} });
+    assert.equal(low.status, 'below-claim'); assert.equal(low.svg.color, '#9ca3af');
+    assert.equal(badgeState(e, { letter: 'A', score: 100, coverage: 55, groups: {} }).status, 'unverified');
+    assert.equal(badgeState(e, { error: 'x' }).status, 'unverified');
+    assert.match(badgeSvg({ right: 'Graded A', color: '#16a34a', title: 'a<b' }), /a&lt;b/);
+});

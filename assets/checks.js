@@ -49,6 +49,48 @@ export function parseInput(raw) {
     return { domain: s };
 }
 
+// ---------- IDN display (RFC 3492 punycode decoder; queries always use the ASCII form) ----------
+function punyDecode(input) {
+    const base = 36, tMin = 1, tMax = 26, skew = 38, damp = 700;
+    const out = [];
+    let n = 128, bias = 72, i = 0;
+    const basic = Math.max(input.lastIndexOf('-'), 0);
+    for (let j = 0; j < basic; j++) out.push(input.charCodeAt(j));
+    const adapt = (delta, num, first) => {
+        let k = 0;
+        delta = first ? Math.floor(delta / damp) : delta >> 1;
+        delta += Math.floor(delta / num);
+        for (; delta > ((base - tMin) * tMax) >> 1; k += base) delta = Math.floor(delta / (base - tMin));
+        return Math.floor(k + ((base - tMin + 1) * delta) / (delta + skew));
+    };
+    for (let idx = basic > 0 ? basic + 1 : 0; idx < input.length;) {
+        const oldi = i;
+        let w = 1;
+        for (let k = base; ; k += base) {
+            if (idx >= input.length) throw new Error('bad punycode');
+            const c = input.charCodeAt(idx++);
+            const digit = c >= 48 && c <= 57 ? c - 22 : c >= 65 && c <= 90 ? c - 65 : c >= 97 && c <= 122 ? c - 97 : base;
+            if (digit >= base) throw new Error('bad punycode');
+            i += digit * w;
+            const t = k <= bias ? tMin : k >= bias + tMax ? tMax : k - bias;
+            if (digit < t) break;
+            w *= base - t;
+        }
+        const len = out.length + 1;
+        bias = adapt(i - oldi, len, oldi === 0);
+        n += Math.floor(i / len);
+        i %= len;
+        out.splice(i++, 0, n);
+    }
+    return String.fromCodePoint(...out);
+}
+export function toUnicode(host) {
+    return String(host).split('.').map((l) => {
+        if (!l.startsWith('xn--')) return l;
+        try { return punyDecode(l.slice(4)); } catch { return l; }
+    }).join('.');
+}
+
 // Registrable domain guess (handles common 2nd-level ccTLD suffixes such as co.uk, com.au).
 const SECOND_LEVEL = /^(co|com|net|org|gov|edu|ac|or|ne|go|ltd|plc|me|gen|biz|info|nom|sch|nhs|gob|gv|mil|id|in)\.[a-z]{2}$/;
 export function registrable(domain) {
@@ -225,9 +267,11 @@ export const DKIM_SELECTORS = ['google', 'selector1', 'selector2', 'k1', 'k2', '
     'zmail', 'zoho', 'fm1', 'fm2', 'fm3', 'protonmail', 'protonmail2', 'protonmail3', 'pm', 'mandrill', 'mxvault', 'everlytickey1',
     'cm', 'mailjet', 'sig1', 'key1', 'key2', 'dkim1', 'scph0920', 'smtpapi', 'hs1', 'hs2', 'turbo-smtp', 'sm', 'sendgrid', 'ses', 'mailo'];
 async function checkDkim(domain, dns, ctx = {}) {
-    const base = { id: 'dkim', group: 'email', title: 'DKIM signing keys', source: `DNS probe of ${DKIM_SELECTORS.length} common selectors` };
+    const extra = (ctx.extraSelectors || []).filter((x) => /^[a-z0-9][a-z0-9._-]{0,62}$/i.test(x)).map((x) => x.toLowerCase());
+    const selectors = [...new Set([...extra, ...DKIM_SELECTORS])];
+    const base = { id: 'dkim', group: 'email', title: 'DKIM signing keys', source: `DNS probe of ${selectors.length} selectors${extra.length ? ` (including yours: ${extra.join(', ')})` : ''}` };
     const found = []; const revoked = []; let errors = 0;
-    await Promise.all(DKIM_SELECTORS.map(async (sel) => {
+    await Promise.all(selectors.map(async (sel) => {
         try {
             const r = await dns(`${sel}._domainkey.${domain}`, 'TXT');
             const rec = r.answers.join('');
@@ -246,14 +290,19 @@ async function checkDkim(domain, dns, ctx = {}) {
             wildcardRevoked = /(^|;)\s*p=\s*(;|$)/i.test(w);
         } catch { /* ignore */ }
     }
+    if (extra.length && !extra.some((x) => found.includes(x))) {
+        const missing = extra.filter((x) => !found.includes(x));
+        if (!found.length) return { ...base, status: 'fail', points: 0, summary: `No active DKIM key at your selector${missing.length > 1 ? 's' : ''} ${missing.join(', ')}${revoked.some((r) => missing.includes(r)) ? ' (the key is revoked: empty p=)' : ''}.`, details: `We looked up ${missing.map((x) => `${x}._domainkey.${domain}`).join(', ')}. Mail signed with this selector will fail DKIM. Check the spelling against the "s=" value in a sent email's DKIM-Signature header.`, fix: 'Publish the DKIM record your email provider gives you for this selector (usually a TXT or CNAME record at <selector>._domainkey).' };
+        return { ...base, status: 'pass', points: 1, summary: `No key at your selector ${missing.join(', ')}, but DKIM keys exist at: ${found.join(', ')}.`, details: 'Make sure your mail is signed with one of the selectors that has a key.' };
+    }
     if (!found.length && wildcardRevoked) {
         if (ctx.noMail) return { ...base, status: 'pass', points: 1, summary: 'All DKIM keys are explicitly revoked (wildcard record), which is correct for a domain that does not send email.' };
         return { ...base, status: 'skip', points: null, summary: 'A wildcard record revokes every DKIM selector we tried.', details: 'Your real selector may still have its own key, so this is inconclusive and left out of your score. Check the "s=" value in the DKIM-Signature header of an email you sent.' };
     }
     if (found.length) return { ...base, status: 'pass', points: 1, summary: wildcard ? 'A DKIM key is published for every selector name (wildcard record).' : `DKIM key found (selector${found.length > 1 ? 's' : ''}: ${found.join(', ')}).`, details: wildcard ? 'A wildcard DKIM record answers any selector, so we cannot tell which selectors you actually sign with. Make sure your mail is signed with the matching private key.' : 'Receivers can verify mail signed with these keys. You may use other selectors too; we only probe common names.' };
-    if (errors > DKIM_SELECTORS.length / 2) return { ...base, status: 'skip', points: null, summary: 'Not checked: DNS lookups for DKIM failed.', details: 'Try again in a minute.' };
+    if (errors > selectors.length / 2) return { ...base, status: 'skip', points: null, summary: 'Not checked: DNS lookups for DKIM failed.', details: 'Try again in a minute.' };
     return { ...base, status: 'skip', points: null,
-        summary: revoked.length ? `Only revoked DKIM keys found (${revoked.join(', ')}). No active key at common selectors.` : `No DKIM key at ${DKIM_SELECTORS.length} common selectors (inconclusive).`,
+        summary: revoked.length ? `Only revoked DKIM keys found (${revoked.join(', ')}). No active key at common selectors.` : `No DKIM key at ${selectors.length} common selectors (inconclusive).`,
         details: 'DKIM keys live at a selector name chosen by your email provider, and some providers (for example Amazon SES or Salesforce) use random names that cannot be guessed. So "not found" does not prove DKIM is missing, and this check is left out of your score. To confirm, open the headers of an email you sent and look for "DKIM-Signature: ... s=<selector>".',
         fix: 'Turn on DKIM signing in your email provider (Google Workspace: Admin console > Apps > Gmail > Authenticate email; Microsoft 365: Defender portal > Email authentication > DKIM) and publish the DNS record it gives you.' };
 }
@@ -279,6 +328,25 @@ function checkMx(mx) {
         details: 'Senders may fall back to the website\'s address and wait for days before bouncing.',
         fix: 'If you use email on this domain, add the MX records from your provider. If you never use email here, publish a "null MX" record:', record: '0 .' };
     return { ...base, status: 'pass', points: 1, summary: `${plural(mx.hosts.length, 'mail server')} found${mx.provider ? `, hosted by ${mx.provider}` : ''}.`, value: mx.hosts.slice(0, 5).join('\n') };
+}
+
+// ---------- Email provider (not scored) ----------
+const SENDER_CATS = new Set(['Email provider', 'Transactional email', 'Email marketing', 'Email security', 'Marketing automation', 'CRM', 'Customer support']);
+async function checkProvider(domain, mx, dns) {
+    const txt = (await dns(domain, 'TXT').catch(() => ({ answers: [] }))).answers;
+    const spf = txt.filter((x) => /^v=spf1(\s|$)/i.test(x));
+    const inbound = mx.kind === 'present' ? (mx.provider || null) : null;
+    const { tech } = detectStack({ txt: spf });
+    const senders = tech.filter((t) => SENDER_CATS.has(t.category) && t.name !== inbound).map((t) => t.name);
+    const gateway = mx.kind === 'present' && inbound && SIGNATURES.find((x) => x.name === inbound)?.cat === 'Email security';
+    let summary;
+    if (mx.kind === 'null') summary = 'This domain does not receive email (null MX).';
+    else if (mx.kind === 'none') summary = 'No mail servers: this domain does not receive email.';
+    else if (inbound) summary = gateway ? `Incoming mail is filtered by ${inbound} (a security gateway); the mailbox provider behind it is not visible in DNS.` : `Email is hosted by ${inbound}.`;
+    else summary = `Email is handled by its own or a less common server (${mx.hosts[0]}).`;
+    return { id: 'provider', group: 'email', title: 'Email provider', status: 'info', points: null, source: 'MX and SPF records',
+        summary: summary + (senders.length ? ` Also authorized to send: ${senders.join(', ')}.` : ''),
+        details: 'Not scored. "Authorized to send" comes from the services listed in the SPF record, so it shows who may send as this domain, not who actually does.' };
 }
 
 // ---------- extra email info (not scored) ----------
@@ -548,20 +616,20 @@ export async function hiringSignal(org) {
 }
 
 // ---------- orchestrator ----------
-export async function grade(input, { onUpdate = () => {}, fresh = false } = {}) {
+export async function grade(input, { onUpdate = () => {}, fresh = false, dkimSelectors = [] } = {}) {
     const parsed = parseInput(input);
     if (parsed.error) return { error: parsed.error };
     const domain = parsed.domain;
     const org = registrable(domain);
     const dns = makeDns();
-    const report = { domain, org, startedAt: new Date().toISOString(), checks: [], version: VERSION };
+    const report = { domain, display: toUnicode(domain), org, startedAt: new Date().toISOString(), checks: [], version: VERSION };
 
     // Existence first: NXDOMAIN means there is nothing to grade.
     let soa;
     try { soa = await dns(domain, 'NS'); } catch { return { error: 'DNS lookups failed from your browser. Check your connection (or a blocker extension) and try again.' }; }
     if (soa.nx) {
         const rd = await rdapLookup(org).catch(() => ({}));
-        return { domain, org, nonexistent: true, registered: rd.notFound ? false : rd.created ? true : null };
+        return { domain, display: toUnicode(domain), org, nonexistent: true, registered: rd.notFound ? false : rd.created ? true : null };
     }
 
     const push = (c) => { report.checks.push(...[].concat(c)); onUpdate(report); };
@@ -573,13 +641,14 @@ export async function grade(input, { onUpdate = () => {}, fresh = false } = {}) 
         if (!mx) { push(['spf', 'dmarc', 'dkim', 'mx'].map((id) => safe(id, 'email', id.toUpperCase())(new Error('DNS lookup failed')))); return; }
         const ctx = { mx };
         push(checkMx(mx));
+        checkProvider(domain, mx, dns).then(push).catch(() => {});
         await Promise.all([
             checkDmarc(domain, org, dns).catch(safe('dmarc', 'email', 'DMARC policy')).then((d) => {
                 push(d);
                 ctx.dmarcEnforced = d.status !== 'skip' && /p=(reject|quarantine)/i.test(d.summary || '');
                 return checkSpf(domain, dns, ctx).catch(safe('spf', 'email', 'SPF record')).then(push);
             }),
-            checkDkim(domain, dns, { noMail: mx.kind !== 'present' }).catch(safe('dkim', 'email', 'DKIM signing keys')).then(push),
+            checkDkim(domain, dns, { noMail: mx.kind !== 'present', extraSelectors: dkimSelectors }).catch(safe('dkim', 'email', 'DKIM signing keys')).then(push),
             checkEmailExtras(domain, dns).then(push).catch(() => {}),
         ]);
     })();
