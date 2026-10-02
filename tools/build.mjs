@@ -69,6 +69,7 @@ function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], faqLd: 
         : `<footer class="foot">
   <p><a href="${P}">Full grade</a> · <a href="${P}dmarc-checker/">DMARC</a> · <a href="${P}spf-checker/">SPF</a> · <a href="${P}dkim-checker/">DKIM</a> · <a href="${P}email-provider-lookup/">Email provider</a> · <a href="${P}security-headers-checker/">Security headers</a> · <a href="${P}badge/">Badge</a> · <a href="${P}agency-widget/">Agency widget</a> · <a href="${P}agency-kit/">Agency Kit</a> · <a href="${P}faq/">FAQ</a></p>
   <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+  <p><a href="https://twelve.tools" target="_blank"><img src="https://twelve.tools/badge0-dark.svg" alt="Featured on Twelve Tools" width="200" height="54"></a></p>
 </footer>`;
     const html = `<!doctype html>
 <html lang="en">
