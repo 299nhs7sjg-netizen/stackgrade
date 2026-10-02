@@ -1,10 +1,15 @@
 import { grade, score, parseInput, toUnicode, GROUPS, WEIGHTS } from './checks.js';
+import { verifyForWidget, decodeConfig, checkoutUrl, isConfigured, STORE_KEY } from './license.js';
 
 const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const BODY = document.body.dataset;
 const FOCUS = (BODY.focus || '').split(',').filter(Boolean);
 const WIDGET = BODY.mode === 'widget';
-const COMPACT = WIDGET && new URLSearchParams(location.search).get('mode') !== 'full';
+const COMPACT_DEFAULT = WIDGET && new URLSearchParams(location.search).get('mode') !== 'full';
+// White-label state for the widget (Agency Kit). Only set after the license verifies with Gumroad.
+let WL = null;
+let showAll = false; // white-label widgets replace the StackGrade "See full report" link with an inline "Show all checks"
+const compact = () => COMPACT_DEFAULT && !showAll;
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -17,7 +22,7 @@ let runId = 0;
 let current = null;
 
 function ring(scoreVal, letterVal, provisional) {
-    if (COMPACT) return ringSmall(scoreVal, letterVal);
+    if (compact()) return ringSmall(scoreVal, letterVal);
     const r = 56; const c = 2 * Math.PI * r;
     const pct = scoreVal == null ? 0 : scoreVal / 100;
     const col = COLORS[letterVal] || '#94a3b8';
@@ -71,14 +76,14 @@ function render(rep, done) {
     const shareText = s.letter ? `${name} scored ${s.letter} (${s.score}/100) on StackGrade's website & email health check` : `Website & email health check for ${name}`;
     let html = `<div class="summary">${ring(s.score, s.letter, provisional)}
       <div><h2 class="sum-h">${esc(name)}${name !== rep.domain ? ` <small class="puny">(${esc(rep.domain)})</small>` : ''}${provisional ? '<span class="prov">Checking…</span>' : ''}</h2>
-      <p class="cov">${s.score == null ? 'Waiting for results…' : `Graded on ${s.coverage} of 100 points.`}${skipped && done ? (COMPACT ? ` ${skipped} not checked.` : ` ${skipped} points could not be checked and are left out (see "Not checked" below).`) : ''}${provisional && s.score != null ? ' *Provisional until every check finishes.' : ''}</p>
+      <p class="cov">${s.score == null ? 'Waiting for results…' : `Graded on ${s.coverage} of 100 points.`}${skipped && done ? (compact() ? ` ${skipped} not checked.` : ` ${skipped} points could not be checked and are left out (see "Not checked" below).`) : ''}${provisional && s.score != null ? ' *Provisional until every check finishes.' : ''}</p>
       ${done && s.coverage < 70 ? `<p class="cov"><span class="prov">Partial grade</span> Only ${s.coverage} of 100 points could be checked, so treat this grade with care.</p>` : ''}
       ${rep.org && rep.org !== rep.domain ? `<p class="cov">You entered a subdomain. Email and website checks are for ${esc(rep.domain)}; registration checks are for ${esc(rep.org)}.</p>` : ''}
       <div class="bars">${bars}</div>
-      ${done && WIDGET && !COMPACT ? `<div class="share"><a class="btn" target="_blank" rel="noopener" href="${esc(shareUrl)}">Open the full report</a></div>` : ''}
+      ${done && WIDGET && !compact() ? (WL ? wlCta() : `<div class="share"><a class="btn" target="_blank" rel="noopener" href="${esc(shareUrl)}">Open the full report</a></div>`) : ''}
       ${done && !WIDGET ? shareRow(shareUrl, shareText, s.letter, true) : ''}
       </div></div>`;
-    if (COMPACT) {
+    if (compact()) {
         const probs = rep.checks.filter((c) => (c.status === 'fail' || c.status === 'warn') && WEIGHTS[c.id])
             .map((c) => ({ c, lost: WEIGHTS[c.id] * (1 - (c.points || 0)) }))
             .sort((a, b) => b.lost - a.lost).slice(0, 5);
@@ -88,7 +93,7 @@ function render(rep, done) {
                     <div class="ch"><h3>${esc(c.title)}</h3><span class="pill ${c.status}">${LABEL[c.status]} · −${Math.round(lost * 10) / 10}</span></div>
                     <p>${esc(c.summary)}</p>${c.fix ? `<details><summary>How to fix</summary><p>${esc(c.fix)}</p>${c.record ? codeBlock(c.record) : ''}</details>` : ''}</article>`).join('')}</section>`
                 : '<section class="group"><h2>No problems found <small>in the checks that ran</small></h2></section>';
-            html += `<p class="seefull"><a class="btn btn-acc" target="_blank" rel="noopener" href="${esc(shareUrl)}">See full report →</a></p>`;
+            html += WL ? `<p class="seefull">${wlCta(true)}</p>` : `<p class="seefull"><a class="btn btn-acc" target="_blank" rel="noopener" href="${esc(shareUrl)}">See full report →</a></p>`;
         } else html += '<div class="pending"><span class="spin"></span>Checking email, website security and domain…</div>';
         el.innerHTML = html;
         postHeight();
@@ -97,7 +102,7 @@ function render(rep, done) {
     if (FOCUS.length) {
         const fc = FOCUS.map((id) => rep.checks.find((c) => c.id === id)).filter(Boolean);
         const spot = `<section class="group spot"><h2>${esc(BODY.focusTitle || 'Result')} <small>${esc(name)}</small></h2>${fc.map(checkCard).join('')}${fc.length < FOCUS.length && !done ? '<div class="pending"><span class="spin"></span>Checking…</div>' : ''}</section>`;
-        html = spot + `<h2 class="full-h">Full StackGrade for ${esc(name)}</h2>` + html;
+        html = spot + `<h2 class="full-h">Full report for ${esc(name)}</h2>` + html;
     }
     for (const g of ORDER) {
         const cs = rep.checks.filter((c) => c.group === g && !FOCUS.includes(c.id)).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
@@ -107,10 +112,15 @@ function render(rep, done) {
         if (pendingGroups.includes(g)) html += `<div class="pending"><span class="spin"></span>${g === 'web' ? 'Scanning website security with Mozilla HTTP Observatory (usually a few seconds, up to a minute for some sites)…' : 'Checking…'}</div>`;
         html += '</section>';
     }
-    if (done && rep.observatory?.url) html += `<p class="d" style="color:var(--mut);font-size:13px;margin-top:14px">Website security data: <a href="${esc(rep.observatory.url)}" target="_blank" rel="noopener">Mozilla HTTP Observatory report for ${esc(rep.observatory.host)}</a>. Grade calculated by StackGrade v${esc(rep.version)} on ${esc(new Date(rep.finishedAt).toLocaleString())}.</p>`;
+    if (done && rep.observatory?.url && !WL) html += `<p class="d" style="color:var(--mut);font-size:13px;margin-top:14px">Website security data: <a href="${esc(rep.observatory.url)}" target="_blank" rel="noopener">Mozilla HTTP Observatory report for ${esc(rep.observatory.host)}</a>. Grade calculated by StackGrade v${esc(rep.version)} on ${esc(new Date(rep.finishedAt).toLocaleString())}.</p>`;
     if (done && !WIDGET) html += `<section class="again"><h2>Share this report or check another domain</h2>${shareRow(shareUrl, shareText, s.letter, false)}</section>`;
+    if (done && WL) html += `<div class="share">${wlCta()}</div>`;
     el.innerHTML = html;
     postHeight();
+}
+function wlCta(withAll = false) {
+    const cta = WL.cta && WL.ctaUrl ? `<a class="btn btn-acc" target="_blank" rel="noopener" href="${esc(WL.ctaUrl)}">${esc(WL.cta)}</a>` : WL.cta ? `<span class="btn btn-acc" style="cursor:default">${esc(WL.cta)}</span>` : '';
+    return `${withAll ? '<button class="btn showall" type="button">Show all checks</button> ' : ''}${cta}`;
 }
 function shareRow(url, text, letterVal, top) {
     return `<div class="share"><button class="btn btn-acc another" type="button">Check another domain</button>
@@ -119,7 +129,18 @@ function shareRow(url, text, letterVal, top) {
         <a class="btn" target="_blank" rel="noopener" href="https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}">Post on X</a>
         <a class="btn" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}">LinkedIn</a>
         ${top && letterVal ? '<button class="btn card" type="button">Download grade card</button>' : ''}
-        ${top ? '<button class="btn rerun" type="button">Re-check</button>' : ''}</div>`;
+        ${top ? '<button class="btn rerun" type="button">Re-check</button>' : ''}
+        ${top && letterVal ? `<button class="btn wlpdf" type="button" title="Agency Kit">White-label PDF report</button>${kitUpsell('kitbuy-inline')}` : ''}</div>
+        ${!top ? kitUpsell('kitbuy-box') : ''}`;
+}
+// Agency Kit upsell link (hidden when no checkout URL is configured, or when this browser already has a license).
+function kitUpsell(cls) {
+    const buy = checkoutUrl();
+    let has = false; try { has = !!localStorage.getItem(STORE_KEY); } catch { /* ignore */ }
+    if (!buy || !isConfigured() || has) return '';
+    return cls === 'kitbuy-box'
+        ? `<p class="kitbuy-box">For agencies: send this report as a PDF with your own logo and colors, and embed a white-label grader on your site. <a class="btn btn-acc" href="${esc(buy)}" target="_blank" rel="noopener">Get the Agency Kit, $29</a></p>`
+        : `<a class="kitbuy-inline" href="${esc(buy)}" target="_blank" rel="noopener">Get the Agency Kit, $29</a>`;
 }
 function postHeight() {
     if (WIDGET && window.parent !== window) window.parent.postMessage({ type: 'stackgrade:height', height: document.documentElement.scrollHeight }, '*');
@@ -200,6 +221,8 @@ document.addEventListener('click', async (e) => {
     } else if (t.classList.contains('nshare') && current) {
         navigator.share({ title: `${current.display}: ${current.letter} on StackGrade`, url: `${location.origin}${location.pathname}?d=${encodeURIComponent(current.display)}${selParam()}` }).catch(() => {});
     } else if (t.classList.contains('card') && current) gradeCard(current);
+    else if (t.classList.contains('showall') && current) { showAll = true; render(current, true); }
+    else if (t.classList.contains('wlpdf') && current) pdfReport(current);
     else if (t.classList.contains('rerun') && current) run(current.domain, { push: false, fresh: true });
     else if (t.classList.contains('another')) {
         const q = $('#q'); q.value = ''; window.scrollTo({ top: 0, behavior: 'smooth' }); setTimeout(() => q.focus({ preventScroll: true }), 300);
@@ -218,4 +241,83 @@ if (WIDGET) {
     if (agency) { const el = document.querySelector('#wby'); if (el) { el.textContent = `by ${agency}`; el.hidden = false; } }
     const color = params.get('color') || '';
     if (/^[0-9a-f]{6}$/i.test(color)) document.documentElement.style.setProperty('--acc', `#${color}`);
+    // Agency Kit white-label. The license key and signed-ish config arrive in the URL hash (never sent to the
+    // web server). HONEST LIMIT: there is no backend, so this check runs in the visitor's browser. It verifies
+    // the key with Gumroad's public API once per page load and only then removes StackGrade branding. Anyone
+    // editing the page could bypass it; it stops casual misuse (e.g. a fake or refunded key), not a determined one.
+    const h = new URLSearchParams(location.hash.slice(1));
+    const lic = (h.get('lic') || '').trim(); const tok = h.get('cfg') || '';
+    if (lic && tok) {
+        (async () => {
+            const brand = await decodeConfig(tok, lic);
+            if (!brand) { console.info('StackGrade widget: white-label config does not match the license key; showing free branding.'); return; }
+            const r = await verifyForWidget(lic);
+            if (!r.ok) { console.info(`StackGrade widget: Agency Kit license not accepted (${r.reason}); showing free branding.`); return; }
+            applyWhiteLabel(brand);
+        })().catch(() => {});
+    }
+}
+function applyWhiteLabel(brand) {
+    WL = brand;
+    if (brand.color) document.documentElement.style.setProperty('--acc', `#${brand.color}`);
+    const by = document.querySelector('#wby');
+    if (by && brand.name) { by.textContent = brand.name; by.hidden = false; by.style.fontWeight = '700'; }
+    if (brand.logo && by) {
+        const img = document.createElement('img');
+        img.className = 'wl-logo'; img.alt = brand.name || ''; img.src = brand.logo; img.referrerPolicy = 'no-referrer';
+        img.onerror = () => img.remove(); img.onload = postHeight;
+        by.parentNode.insertBefore(img, by);
+    }
+    if (brand.hidePowered) document.querySelector('.wfoot')?.remove();
+    document.title = brand.name ? `Website & email health check · ${brand.name}` : 'Website & email health check';
+    if (current) render(current, true);
+    postHeight();
+}
+
+// ---- White-label PDF report (Agency Kit) ----
+async function pdfReport(rep) {
+    const kit = await import('./agency-kit.js');
+    const st = await kit.kitStatus();
+    if (st.unlocked) { printReport(rep, kit.loadBrand()); return; }
+    const m = document.createElement('div');
+    m.className = 'modal';
+    m.innerHTML = `<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="kit-t"><h2 id="kit-t">White-label PDF report</h2>
+      <p>Download this report as a PDF with your agency's logo, name and colors, and no StackGrade branding. Part of the Agency Kit.</p>
+      <div class="kit-slot"></div><p><button class="btn kit-close" type="button">Close</button></p></div>`;
+    document.body.appendChild(m);
+    const close = () => m.remove();
+    m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('.kit-close')) close(); });
+    await kit.renderKitPanel(m.querySelector('.kit-slot'), { onUnlock: () => { close(); printReport(rep, kit.loadBrand()); } });
+}
+function printReport(rep, brand = {}) {
+    const name = rep.display || rep.domain;
+    const brandCol = /^[0-9a-f]{6}$/i.test(brand.color || '') ? `#${brand.color}` : '#0f172a';
+    const gc = COLORS[rep.letter] || '#94a3b8';
+    const strip = (t) => String(t ?? '').replace(/StackGrade/g, 'This report');
+    const cats = ['email', 'web', 'domain'].map((g) => `<tr><td>${esc(GROUPS[g])}</td><td><b>${rep.groups?.[g]?.score ?? 'n/a'}</b>${rep.groups?.[g]?.score != null ? '/100' : ''}</td></tr>`).join('');
+    const secs = ORDER.map((g) => {
+        const cs = rep.checks.filter((c) => c.group === g).sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status]);
+        if (!cs.length) return '';
+        return `<h3 class="pr-sec">${esc(GROUPS[g])}</h3>${cs.map((c) => `<div class="pr-check ${c.status}"><h4>${esc(c.title)}<span class="pr-st">${LABEL[c.status]}</span></h4>
+          <p>${esc(strip(c.summary))}</p>${c.details ? `<p style="color:#475569">${esc(strip(c.details))}</p>` : ''}
+          ${c.fix && c.status !== 'pass' && c.status !== 'info' ? `<div class="pr-fix"><b>How to fix:</b> ${esc(strip(c.fix))}${c.record ? `<br><code>${esc(c.record)}</code>` : ''}</div>` : ''}</div>`).join('')}`;
+    }).join('');
+    let el = document.querySelector('#print-report');
+    if (!el) { el = document.createElement('div'); el.id = 'print-report'; document.body.appendChild(el); }
+    el.style.setProperty('--brand', brandCol);
+    el.style.setProperty('--gc', gc);
+    const date = new Date(rep.finishedAt || Date.now()).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    el.innerHTML = `<div class="pr-head">${brand.logo ? `<img src="${esc(brand.logo)}" alt="" referrerpolicy="no-referrer">` : ''}${brand.name ? `<span class="pr-ag">${esc(brand.name)}</span>` : ''}</div>
+      <h1 class="pr-title">Website &amp; email health report</h1>
+      <p class="pr-meta">${esc(name)}${name !== rep.domain ? ` (${esc(rep.domain)})` : ''} · ${esc(date)}</p>
+      <div class="pr-sum"><div class="pr-grade"><b>${esc(rep.letter)}</b><span>${rep.score}/100</span></div>
+        <div><table class="pr-cats">${cats}</table><p class="pr-meta" style="margin:6px 0 0">Graded on ${rep.coverage} of 100 points.${rep.skippedWeight ? ` ${rep.skippedWeight} points could not be checked and are excluded.` : ''}${rep.coverage < 70 ? ' Partial grade: treat with care.' : ''}</p></div></div>
+      ${secs}
+      <p class="pr-foot">${brand.name ? `Prepared by ${esc(brand.name)}. ` : ''}Based on public DNS, registry (RDAP) and Mozilla HTTP Observatory data at the time of the check.</p>`;
+    const prevTitle = document.title;
+    document.title = `${brand.name ? `${brand.name} - ` : ''}${rep.domain} health report`;
+    const img = el.querySelector('img');
+    let printed = false;
+    const go = () => { if (printed) return; printed = true; window.print(); setTimeout(() => { document.title = prevTitle; }, 500); };
+    if (img && !img.complete) { img.onload = img.onerror = go; setTimeout(go, 3000); } else go();
 }

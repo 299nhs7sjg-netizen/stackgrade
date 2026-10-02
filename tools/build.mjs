@@ -5,6 +5,7 @@ import path from 'node:path';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const P = '/stackgrade/';
+const KIT_URL = 'https://greenlight5868.gumroad.com/l/stackgrade-agency-kit'; // keep in sync with assets/config.js
 const TODAY = new Date().toISOString().slice(0, 10);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -38,14 +39,15 @@ const GC = (mode) => mode === 'widget'
     : `<script>window.goatcounter={path:function(){return location.pathname}};</script>
 <script data-goatcounter="https://greentools.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>`;
 
-function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], intro = '', extraTool = '', og, examples = ['github.com', 'stripe.com', 'bbc.co.uk', 'example.com'], noindex = false, body, mode, showHow = true }) {
+function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], faqLd: faqLdItems, intro = '', extraTool = '', og, examples = ['github.com', 'stripe.com', 'bbc.co.uk', 'example.com'], noindex = false, body, mode, showHow = true }) {
     const url = SITE + slug;
     const depth = slug.split('/').filter(Boolean).length;
-    const faqLd = faq.length ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a.replace(/<[^>]+>/g, '') } })) })}</script>` : '';
+    const ldItems = faqLdItems || faq;
+    const faqLd = ldItems.length ? `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: ldItems.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a.replace(/<[^>]+>/g, '') } })) })}</script>` : '';
     const appLd = `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebApplication', name: h1 === 'How healthy is your domain?' ? 'StackGrade' : `StackGrade ${focusTitle || h1}`, url, applicationCategory: 'SecurityApplication', operatingSystem: 'Any', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, description: desc })}</script>`;
     const nav = mode === 'widget' ? '' : `<header class="top">
   <a class="brand" href="${P}"><img src="${P}assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
-  <nav><a href="${P}#how">How it works</a><a href="${P}agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+  <nav><a href="${P}#how">How it works</a><a href="${P}agency-widget/">For agencies</a><a href="${P}faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
 </header>`;
     const toolsNav = mode === 'widget' || slug.startsWith('badge') || slug.startsWith('agency') ? '' : `<nav class="tools" aria-label="Checks">${TOOLS.map(([s, n]) => `<a href="${P}${s}"${s === slug ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`;
     const tool = body || `<section class="hero" id="hero">
@@ -65,7 +67,7 @@ function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], intro =
     const footer = mode === 'widget'
         ? `<p class="wfoot">Powered by <a href="${SITE}?ref=widget" target="_blank" rel="noopener">StackGrade</a> · free website &amp; email health grade</p>`
         : `<footer class="foot">
-  <p><a href="${P}">Full grade</a> · <a href="${P}dmarc-checker/">DMARC</a> · <a href="${P}spf-checker/">SPF</a> · <a href="${P}dkim-checker/">DKIM</a> · <a href="${P}email-provider-lookup/">Email provider</a> · <a href="${P}security-headers-checker/">Security headers</a> · <a href="${P}badge/">Badge</a> · <a href="${P}agency-widget/">Agency widget</a></p>
+  <p><a href="${P}">Full grade</a> · <a href="${P}dmarc-checker/">DMARC</a> · <a href="${P}spf-checker/">SPF</a> · <a href="${P}dkim-checker/">DKIM</a> · <a href="${P}email-provider-lookup/">Email provider</a> · <a href="${P}security-headers-checker/">Security headers</a> · <a href="${P}badge/">Badge</a> · <a href="${P}agency-widget/">Agency widget</a> · <a href="${P}agency-kit/">Agency Kit</a> · <a href="${P}faq/">FAQ</a></p>
   <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
 </footer>`;
     const html = `<!doctype html>
@@ -213,7 +215,8 @@ add({ slug: 'agency-widget/', og: 'widget', showHow: false,
     title: 'Free website audit widget for agencies | StackGrade',
     desc: 'Embed a free website & email health grader on your agency site. Visitors grade their domain (SPF, DKIM, DMARC, security headers, expiry) without leaving your page. Copy-paste embed, free.',
     body: `<section class="hero"><h1>Free audit widget for agencies</h1>
-<p class="sub">Put a website &amp; email health grader on your own site. Visitors check their domain without leaving your page: a natural conversation starter for web, email and IT agencies. Free, no signup.</p></section>
+<p class="sub">Put a website &amp; email health grader on your own site. Visitors check their domain without leaving your page: a natural conversation starter for web, email and IT agencies. Free, no signup.</p>
+<p id="kithero"></p></section>
 <section class="seo">
 <h2>1. Copy the embed code</h2>
 <p><b>Script (recommended, resizes automatically):</b></p>
@@ -227,11 +230,30 @@ add({ slug: 'agency-widget/', og: 'widget', showHow: false,
 <li><code>data-domain</code> / <code>?d=</code>: optional domain to grade straight away.</li>
 <li><code>data-mode="full"</code> / <code>?mode=full</code>: show the full report inside the widget instead of the compact view.</li></ul>
 <p>The free widget shows "Powered by StackGrade" with a link back. Lead capture (collecting the visitor's email for you) is not available yet.</p>
-<h2>2. Live demo</h2>
+<h2>2. Widget builder</h2>
+<p>Fill in your details to get a ready-made snippet and a live preview. Name and color are free. Logo, call-to-action button, removing "Powered by" and white-label PDF reports are part of the <b>Agency Kit</b> ($29 one-time). <a href="${P}agency-kit/">Setup guide</a>.</p>
+<div id="kitpanel"></div>
+<form id="wlform" class="builder" autocomplete="off">
+<label>Agency name <input type="text" name="agency" maxlength="60" placeholder="Acme Web Studio"></label>
+<label>Brand color <input type="color" name="color" value="#0f172a"></label>
+<label>Logo URL (https) <span class="paid-tag">AGENCY KIT</span><input class="paid" type="url" name="logo" placeholder="https://example.com/logo.png" disabled></label>
+<label>Button text <span class="paid-tag">AGENCY KIT</span><input class="paid" type="text" name="cta" maxlength="40" placeholder="Book a free audit call" disabled></label>
+<label>Button link (https) <span class="paid-tag">AGENCY KIT</span><input class="paid" type="url" name="ctaUrl" placeholder="https://example.com/contact" disabled></label>
+<label class="row"><input class="paid" type="checkbox" name="hidePowered" disabled> Hide "Powered by StackGrade" <span class="paid-tag">AGENCY KIT</span></label>
+</form>
+<p id="wlwarn" class="kit-msg"></p>
+<p id="wlnote" class="d"></p>
+<div class="code"><code id="wlsnip"></code><button class="btn" type="button" id="wlcopy">Copy</button></div>
+<p><b>Preview</b></p>
+<iframe id="wlprev" title="Widget preview" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff"></iframe>
+<h3>How the white-label check works (honest version)</h3>
+<p>StackGrade has no server. A white-label snippet carries your Gumroad license key (<code>data-license</code>) and your branding (<code>data-config</code>, with a checksum that catches copy/paste damage, not a real signature). On each page load the widget asks Gumroad's public license API whether the key is valid and not refunded, disputed or cancelled, and only then shows your logo and button and hides "Powered by". If the check fails, the widget falls back to the free version. Because this runs in the visitor's browser, your key is visible in your page source and a determined person could bypass it. It is a fair-use check, not DRM.</p>
+<h2>3. Live demo</h2>
 <iframe src="${demoSrc}" title="StackGrade widget demo" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff" loading="lazy"></iframe>
 <h2>Privacy</h2>
 <p>The widget runs entirely in the visitor's browser and stores nothing. It queries public DNS, registry RDAP, Mozilla HTTP Observatory and public job boards, exactly like the main site.</p>
-</section>` });
+</section>
+<script type="module" src="${P}assets/agency.js"></script>` });
 
 // ---- badge page ----
 add({ slug: 'badge/', og: 'badge', showHow: false,
@@ -251,6 +273,54 @@ add({ slug: 'badge/', og: 'badge', showHow: false,
 <h2>Listed domains</h2><div id="blist">Loading…</div>
 </section>
 <script type="module" src="${P}assets/badge-page.js"></script>` });
+
+// ---- FAQ (from docs/FAQ.md) ----
+function inline(t) {
+    return esc(t).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, a, u) => `<a href="${u.replace(SITE, P)}">${a}</a>`);
+}
+function mdToHtml(md) {
+    const out = []; const qa = []; let para = []; let list = null; let code = null; let q = null;
+    const flushP = () => { if (para.length) { const t = para.join(' '); out.push(`<p>${inline(t)}</p>`); if (q) q.a.push(t); para = []; } };
+    const flushL = () => { if (list) { out.push(`<ul>${list.map((i) => `<li>${inline(i)}</li>`).join('')}</ul>`); if (q) q.a.push(list.join(' ')); list = null; } };
+    let h1 = '';
+    for (const line of md.split('\n')) {
+        if (code) { if (line.startsWith('```')) { out.push(`<pre class="code"><code>${esc(code.join('\n'))}</code></pre>`); if (q) q.a.push(code.join(' ')); code = null; } else code.push(line); continue; }
+        if (line.startsWith('```')) { flushP(); flushL(); code = []; continue; }
+        let m;
+        if ((m = /^(#{1,3}) (.*)/.exec(line))) {
+            flushP(); flushL();
+            const lvl = m[1].length;
+            if (lvl === 1) { h1 = m[2]; continue; }
+            const id = m[2].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            out.push(`<h${lvl} id="${id}">${inline(m[2])}</h${lvl}>`);
+            q = lvl === 3 ? { q: m[2], a: [] } : null; if (q && m[2].endsWith('?')) qa.push(q);
+            continue;
+        }
+        if ((m = /^- (.*)/.exec(line))) { flushP(); (list ||= []).push(m[1]); continue; }
+        if (!line.trim()) { flushP(); flushL(); continue; }
+        para.push(line.trim());
+    }
+    flushP(); flushL();
+    return { h1, html: out.join('\n'), qa: qa.map((x) => [x.q, x.a.join(' ').replace(/\*\*|`/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')]) };
+}
+const faqMd = mdToHtml(fs.readFileSync(path.join(ROOT, 'docs/FAQ.md'), 'utf8'));
+const faqHtmlBody = faqMd.html.replace(/^<p>[\s\S]*?<\/p>/, '');
+const faqIntro = faqMd.html.match(/^<p>[\s\S]*?<\/p>/)?.[0] || '';
+add({ slug: 'faq/', og: 'home', showHow: false, faqLd: faqMd.qa,
+    title: 'StackGrade FAQ: grading, checks, fixes, widget, Agency Kit and privacy',
+    desc: 'How StackGrade grades domains, what each check means, how to fix SPF, DMARC, DKIM and security headers, Not checked and Partial grade, badges, the widget, Agency Kit licensing and privacy.',
+    body: `<section class="hero"><h1>${esc(faqMd.h1)}</h1>${faqIntro.replace('<p>', '<p class="sub">')}</section>
+<section class="seo faqdoc">${faqHtmlBody}</section>` });
+
+const kitMd = mdToHtml(fs.readFileSync(path.join(ROOT, 'docs/AGENCY-KIT-SETUP.md'), 'utf8'));
+const kitIntro = kitMd.html.match(/^<p>[\s\S]*?<\/p>/)?.[0] || '';
+add({ slug: 'agency-kit/', og: 'widget', showHow: false,
+    title: 'Agency Kit setup guide: white-label widget and PDF reports | StackGrade',
+    desc: 'Set up the StackGrade Agency Kit ($29 one-time): buy on Gumroad, find your license key, activate it, build a white-label audit widget and export white-label PDF reports.',
+    body: `<section class="hero"><h1>${esc(kitMd.h1)}</h1>${kitIntro.replace('<p>', '<p class="sub">')}
+<p><a class="btn btn-acc" href="${KIT_URL}" target="_blank" rel="noopener">Get the Agency Kit, $29</a></p></section>
+<section class="seo faqdoc">${kitMd.html.replace(/^<p>[\s\S]*?<\/p>/, '')}</section>` });
 
 // ---- sitemap / robots / llms ----
 const indexable = PAGES.filter((p) => !p.noindex);
@@ -273,8 +343,10 @@ Link to a result: ${SITE}?d=example.com
 - [DKIM checker](${SITE}dkim-checker/): probes about 40 common selectors or a custom selector (?d=example.com&s=selector)
 - [Email provider lookup](${SITE}email-provider-lookup/): mailbox provider from MX, authorized senders from SPF
 - [Security headers checker](${SITE}security-headers-checker/): HTTPS redirect, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, cookies
-- [Agency widget](${SITE}agency-widget/): free embeddable grader with "Powered by StackGrade"
+- [Agency widget](${SITE}agency-widget/): free embeddable grader with "Powered by StackGrade"; paid Agency Kit ($29 one-time) adds a white-label widget and PDF reports
 - [Badge](${SITE}badge/): "Graded A/B" SVG badge for listed domains
+- [Agency Kit setup guide](${SITE}agency-kit/): buy, activate the Gumroad license key, build the white-label widget, export PDFs
+- [FAQ](${SITE}faq/): grading, each check, fixes, Not checked / Partial grade, badges, widget, Agency Kit licensing, privacy
 
 ## Scoring
 - [Scoring rubric and data sources](https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric): email 50 points, website security 35, domain 15; A >= 90, B >= 80, C >= 70, D >= 60, F < 60

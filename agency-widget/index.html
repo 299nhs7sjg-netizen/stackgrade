@@ -24,11 +24,12 @@
 <body>
 <header class="top">
   <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
-  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="/stackgrade/faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
 </header>
 <main>
   <section class="hero"><h1>Free audit widget for agencies</h1>
-<p class="sub">Put a website &amp; email health grader on your own site. Visitors check their domain without leaving your page: a natural conversation starter for web, email and IT agencies. Free, no signup.</p></section>
+<p class="sub">Put a website &amp; email health grader on your own site. Visitors check their domain without leaving your page: a natural conversation starter for web, email and IT agencies. Free, no signup.</p>
+<p id="kithero"></p></section>
 <section class="seo">
 <h2>1. Copy the embed code</h2>
 <p><b>Script (recommended, resizes automatically):</b></p>
@@ -42,17 +43,36 @@
 <li><code>data-domain</code> / <code>?d=</code>: optional domain to grade straight away.</li>
 <li><code>data-mode="full"</code> / <code>?mode=full</code>: show the full report inside the widget instead of the compact view.</li></ul>
 <p>The free widget shows "Powered by StackGrade" with a link back. Lead capture (collecting the visitor's email for you) is not available yet.</p>
-<h2>2. Live demo</h2>
+<h2>2. Widget builder</h2>
+<p>Fill in your details to get a ready-made snippet and a live preview. Name and color are free. Logo, call-to-action button, removing "Powered by" and white-label PDF reports are part of the <b>Agency Kit</b> ($29 one-time). <a href="/stackgrade/agency-kit/">Setup guide</a>.</p>
+<div id="kitpanel"></div>
+<form id="wlform" class="builder" autocomplete="off">
+<label>Agency name <input type="text" name="agency" maxlength="60" placeholder="Acme Web Studio"></label>
+<label>Brand color <input type="color" name="color" value="#0f172a"></label>
+<label>Logo URL (https) <span class="paid-tag">AGENCY KIT</span><input class="paid" type="url" name="logo" placeholder="https://example.com/logo.png" disabled></label>
+<label>Button text <span class="paid-tag">AGENCY KIT</span><input class="paid" type="text" name="cta" maxlength="40" placeholder="Book a free audit call" disabled></label>
+<label>Button link (https) <span class="paid-tag">AGENCY KIT</span><input class="paid" type="url" name="ctaUrl" placeholder="https://example.com/contact" disabled></label>
+<label class="row"><input class="paid" type="checkbox" name="hidePowered" disabled> Hide "Powered by StackGrade" <span class="paid-tag">AGENCY KIT</span></label>
+</form>
+<p id="wlwarn" class="kit-msg"></p>
+<p id="wlnote" class="d"></p>
+<div class="code"><code id="wlsnip"></code><button class="btn" type="button" id="wlcopy">Copy</button></div>
+<p><b>Preview</b></p>
+<iframe id="wlprev" title="Widget preview" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff"></iframe>
+<h3>How the white-label check works (honest version)</h3>
+<p>StackGrade has no server. A white-label snippet carries your Gumroad license key (<code>data-license</code>) and your branding (<code>data-config</code>, with a checksum that catches copy/paste damage, not a real signature). On each page load the widget asks Gumroad's public license API whether the key is valid and not refunded, disputed or cancelled, and only then shows your logo and button and hides "Powered by". If the check fails, the widget falls back to the free version. Because this runs in the visitor's browser, your key is visible in your page source and a determined person could bypass it. It is a fair-use check, not DRM.</p>
+<h2>3. Live demo</h2>
 <iframe src="https://299nhs7sjg-netizen.github.io/stackgrade/widget/?agency=Acme%20Web%20Studio" title="StackGrade widget demo" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff" loading="lazy"></iframe>
 <h2>Privacy</h2>
 <p>The widget runs entirely in the visitor's browser and stores nothing. It queries public DNS, registry RDAP, Mozilla HTTP Observatory and public job boards, exactly like the main site.</p>
 </section>
+<script type="module" src="/stackgrade/assets/agency.js"></script>
   
   
   
 </main>
 <footer class="foot">
-  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a> · <a href="/stackgrade/agency-kit/">Agency Kit</a> · <a href="/stackgrade/faq/">FAQ</a></p>
   <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
 </footer>
 
