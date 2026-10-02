@@ -1,0 +1,15 @@
+{
+  "domain": "stripe.com",
+  "claim": "A",
+  "checkedAt": "2026-10-02T01:19:38.870Z",
+  "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=stripe.com",
+  "letter": "A",
+  "score": 99,
+  "coverage": 100,
+  "groups": {
+    "email": 100,
+    "web": 97,
+    "domain": 100
+  },
+  "status": "verified"
+}

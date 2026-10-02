@@ -1,0 +1,22 @@
+[
+  {
+    "domain": "github.com",
+    "claim": "A",
+    "addedAt": "2026-10-02"
+  },
+  {
+    "domain": "stripe.com",
+    "claim": "A",
+    "addedAt": "2026-10-02"
+  },
+  {
+    "domain": "linear.app",
+    "claim": "A",
+    "addedAt": "2026-10-02"
+  },
+  {
+    "domain": "bbc.co.uk",
+    "claim": "A",
+    "addedAt": "2026-10-02"
+  }
+]

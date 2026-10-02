@@ -1,0 +1,15 @@
+{
+  "domain": "github.com",
+  "claim": "A",
+  "checkedAt": "2026-10-02T01:19:33.533Z",
+  "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=github.com",
+  "letter": "A",
+  "score": 97,
+  "coverage": 100,
+  "groups": {
+    "email": 94,
+    "domain": 100,
+    "web": 100
+  },
+  "status": "verified"
+}

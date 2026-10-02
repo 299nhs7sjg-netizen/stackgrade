@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StackGrade badge: show your website &amp; email health grade | StackGrade</title>
+<meta name="description" content="An embeddable &quot;Graded A&quot; badge for domains with a StackGrade grade of B or better. The badge turns grey if the grade drops below the level it claims.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/badge/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="StackGrade badge: show your website &amp; email health grade | StackGrade">
+<meta property="og:description" content="An embeddable &quot;Graded A&quot; badge for domains with a StackGrade grade of B or better. The badge turns grey if the grade drops below the level it claims.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/badge/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/badge.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade undefined","url":"https://299nhs7sjg-netizen.github.io/stackgrade/badge/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"An embeddable \"Graded A\" badge for domains with a StackGrade grade of B or better. The badge turns grey if the grade drops below the level it claims."}</script>
+
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero"><h1>StackGrade badge (beta)</h1>
+<p class="sub">Show visitors that your email and website security are in good shape. Badges are only issued to domains graded <b>B or better</b>, and turn <b>grey</b> if the grade drops below the claimed level.</p>
+<form id="bform" class="search" autocomplete="off"><label for="bq" class="sr">Domain</label><input id="bq" type="text" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required><button type="submit">Find badge</button></form>
+<p id="bout" class="sub" style="margin-top:16px"></p></section>
+<section class="seo">
+<h2>How badges work</h2>
+<ul><li>Each listed domain is re-graded by StackGrade's Node script, using the same check engine as this site, and gets <code>/badge/&lt;domain&gt;.svg</code> plus a JSON file with the details.</li>
+<li><b>Colors:</b> green or lime means the current grade meets the claimed level. Grey means the grade dropped below the claim, or fewer than 70 of 100 points could be checked.</li>
+<li>The badge shows the date of its last check, so a stale badge is visible.</li></ul>
+<h2>Getting a badge</h2>
+<p>Self-serve badge requests are <b>not open yet</b>. Badges currently exist only for the demo domains in <a href="https://github.com/299nhs7sjg-netizen/stackgrade/blob/main/domains.json">domains.json</a>. Daily automatic re-checks will be switched on together with self-serve requests.</p>
+<h2>Listed domains</h2><div id="blist">Loading…</div>
+</section>
+<script type="module" src="/stackgrade/assets/badge-page.js"></script>
+  
+  
+  
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+
+</body>
+</html>
