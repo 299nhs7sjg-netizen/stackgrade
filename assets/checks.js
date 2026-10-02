@@ -374,7 +374,7 @@ function webChecks(obs) {
         if (id === 'cookies' && /cookies-not-found/.test(result)) return { ...base, status: 'pass', points: 1, summary: 'No cookies set on the homepage.' };
         let status;
         if (t.pass === true) status = 'pass';
-        else if (id === 'csp' && /^csp-implemented/.test(result)) status = 'warn';
+        else if (id === 'csp' && /^csp-implemented|csp-not-implemented-but-reporting-enabled/.test(result)) status = 'warn';
         else if (id === 'hsts' && /hsts-implemented-max-age-less-than-six-months/.test(result)) status = 'warn';
         else if (id === 'https' && /redirection-off-host-from-http|redirection-not-needed/.test(result)) status = 'warn';
         else if ((t.score_modifier ?? -100) > -10) status = 'warn';

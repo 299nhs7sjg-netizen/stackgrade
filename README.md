@@ -44,7 +44,7 @@ Subdomains inherit DMARC from the organizational domain (using `sp=` when it is 
 |---|---|---|
 | HTTPS & redirect | 10 | `redirection` |
 | HSTS | 8 | `strict-transport-security` (max-age under 6 months is a warning) |
-| Content-Security-Policy | 6 | `content-security-policy` (a policy with unsafe sources is a warning; missing or report-only is a fail) |
+| Content-Security-Policy | 6 | `content-security-policy` (a policy with unsafe sources, or report-only mode, is a warning; missing is a fail) |
 | Clickjacking protection | 4 | `x-frame-options` (or CSP `frame-ancestors`) |
 | X-Content-Type-Options | 3 | `x-content-type-options` |
 | Referrer-Policy | 2 | `referrer-policy` |
