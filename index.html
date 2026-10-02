@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StackGrade: free website & email health grade</title>
+<meta name="description" content="Enter any domain and get a 0-100 health grade in seconds: SPF, DKIM, DMARC, security headers, domain expiry and tech stack, with plain-English fixes. Free, no signup.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="StackGrade: free website & email health grade">
+<meta property="og:description" content="SPF, DKIM, DMARC, security headers, domain expiry and tech stack, graded 0-100 with plain-English fixes.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade","url":"https://299nhs7sjg-netizen.github.io/stackgrade/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Free website and email health grade: SPF, DKIM, DMARC, security headers, domain expiry and tech stack."}</script>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="./"><img src="assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="#how">How it works</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+
+<main>
+  <section class="hero" id="hero">
+    <h1>How healthy is your domain?</h1>
+    <p class="sub">A free 0–100 grade for email authentication, website security and domain health, with plain-English fixes. No signup.</p>
+    <form id="form" class="search" autocomplete="off">
+      <label for="q" class="sr">Domain</label>
+      <input id="q" name="d" type="text" inputmode="url" placeholder="yourcompany.com" spellcheck="false" autocapitalize="off" required>
+      <button type="submit" id="go">Grade it</button>
+    </form>
+    <p class="examples">Try: <a href="?d=github.com">github.com</a> <a href="?d=stripe.com">stripe.com</a> <a href="?d=bbc.co.uk">bbc.co.uk</a> <a href="?d=example.com">example.com</a></p>
+    <p id="err" class="err" role="alert" hidden></p>
+  </section>
+
+  <section id="result" class="result" hidden aria-live="polite"></section>
+
+  <section id="how" class="how">
+    <h2>How it works</h2>
+    <div class="cols">
+      <div><h3>Email authentication · 50 pts</h3><p>SPF (including the 10-lookup limit), DMARC policy, DKIM keys at common selectors, and MX. These decide whether Gmail and Yahoo trust your mail, and whether scammers can spoof you.</p></div>
+      <div><h3>Website security · 35 pts</h3><p>HTTPS redirect, HSTS, Content-Security-Policy, clickjacking protection, X-Content-Type-Options, Referrer-Policy and cookie flags, using Mozilla's public HTTP Observatory scan.</p></div>
+      <div><h3>Domain health · 15 pts</h3><p>Expiry date and registrar transfer lock from the official registry (RDAP). Domain age, tech stack and hiring signals are shown but not scored.</p></div>
+    </div>
+    <h3>Honest by design</h3>
+    <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
+    <h3>Privacy</h3>
+    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing and run no analytics.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>StackGrade (beta) · free and open · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source & rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+</footer>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>

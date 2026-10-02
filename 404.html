@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>StackGrade</title>
+<script>
+// Pretty report URLs: /stackgrade/r/example.com -> /stackgrade/?d=example.com
+(function () {
+  var m = location.pathname.match(/^\/stackgrade\/r\/([^\/?#]+)/);
+  location.replace('/stackgrade/' + (m ? '?d=' + encodeURIComponent(decodeURIComponent(m[1])) : ''));
+})();
+</script></head><body><p><a href="/stackgrade/">StackGrade</a></p></body></html>
