@@ -1,6 +1,6 @@
 # StackGrade
 
-> StackGrade is a free website and email health grader. Enter a domain and get a 0-100 grade (A-F) in seconds, covering email authentication (SPF, DKIM, DMARC, MX), website security headers (via Mozilla HTTP Observatory) and domain health (expiry and transfer lock from registry RDAP), with plain-English fixes. No signup, no server: checks run in the visitor's browser. Checks that cannot run are shown as "Not checked" and excluded from the score.
+> StackGrade is a free website and email health grader. Enter a domain and get a 0-100 grade (A-F) in seconds, covering email authentication (SPF, DKIM, DMARC, MX), website security headers (via Mozilla HTTP Observatory) and domain health (expiry and transfer lock from registry RDAP), with plain-English fixes. No signup: checks run in the visitor's browser; a small API fetches homepages for the tech-stack scan and runs paid monitoring. Checks that cannot run are shown as "Not checked" and excluded from the score.
 
 Link to a result: https://299nhs7sjg-netizen.github.io/stackgrade/?d=example.com
 
@@ -11,10 +11,13 @@ Link to a result: https://299nhs7sjg-netizen.github.io/stackgrade/?d=example.com
 - [DKIM checker](https://299nhs7sjg-netizen.github.io/stackgrade/dkim-checker/): probes about 40 common selectors or a custom selector (?d=example.com&s=selector)
 - [Email provider lookup](https://299nhs7sjg-netizen.github.io/stackgrade/email-provider-lookup/): mailbox provider from MX, authorized senders from SPF
 - [Security headers checker](https://299nhs7sjg-netizen.github.io/stackgrade/security-headers-checker/): HTTPS redirect, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, cookies
-- [Agency widget](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/): free embeddable grader with "Powered by StackGrade"; paid Agency Kit ($29 one-time) adds a white-label widget and PDF reports
+- [Agency widget](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/): free embeddable grader with "Powered by StackGrade"; Agency Kit ($29 one-time) or the Agency plans add a white-label widget, PDF reports and lead capture
 - [Badge](https://299nhs7sjg-netizen.github.io/stackgrade/badge/): "Graded A/B" SVG badge for listed domains
 - [Agency Kit setup guide](https://299nhs7sjg-netizen.github.io/stackgrade/agency-kit/): buy, activate the Gumroad license key, build the white-label widget, export PDFs
-- [FAQ](https://299nhs7sjg-netizen.github.io/stackgrade/faq/): grading, each check, fixes, Not checked / Partial grade, badges, widget, Agency Kit licensing, privacy
+- [FAQ](https://299nhs7sjg-netizen.github.io/stackgrade/faq/): grading, each check, fixes, Not checked / Partial grade, badges, widget, plans, monitoring, Agency Kit licensing, privacy
+- [Pricing](https://299nhs7sjg-netizen.github.io/stackgrade/pricing/): Free (1 domain weekly), Pro $19/mo or $190/yr (25 domains daily), Agency $49/mo or $490/yr (200 domains daily, white-label, lead capture), Agency+ $99/mo or $990/yr (1,000 domains daily), Agency Kit $29 one-time. Email alerts coming soon; alerts via in-app feed and webhooks today.
+- [Monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/): monitored domains, change alerts, webhooks, leads
+- [Terms](https://299nhs7sjg-netizen.github.io/stackgrade/terms/), [Privacy](https://299nhs7sjg-netizen.github.io/stackgrade/privacy/), [Removal requests](https://299nhs7sjg-netizen.github.io/stackgrade/remove/)
 
 ## Scoring
 - [Scoring rubric and data sources](https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric): email 50 points, website security 35, domain 15; A >= 90, B >= 80, C >= 70, D >= 60, F < 60

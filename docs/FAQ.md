@@ -95,30 +95,89 @@ Listed domains graded **B or better** get an SVG badge at `/stackgrade/badge/<do
 
 Yes. The free widget is one script tag (see [For agencies](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/)). Visitors grade their domain without leaving your page. It shows your agency name and button color, the grade, category scores and the top 5 problems with fixes, plus "Powered by StackGrade". It runs in the visitor's browser like the main site.
 
-## Agency Kit (paid)
+## Plans and monitoring
 
-### What is the Agency Kit?
+### What plans are there?
 
-A paid add-on, sold through Gumroad for **$29 (one-time purchase)**, that unlocks a **white-label widget** (your logo, name, brand color and call-to-action button, with the option to hide "Powered by StackGrade") and **white-label PDF reports** of any result, with your logo, name and colors and no StackGrade branding. [Get the Agency Kit, $29](https://greenlight5868.gumroad.com/l/stackgrade-agency-kit). Setup steps: [Agency Kit setup guide](https://299nhs7sjg-netizen.github.io/stackgrade/agency-kit/).
+The grader, the free widget and 1 monitored domain are free. Paid plans are sold through Gumroad, monthly or yearly (yearly costs 10 months):
 
-### How does licensing work?
+- **Free**: 1 domain, checked weekly. Alerts in the dashboard and via webhook.
+- **Pro, $19/month or $190/year**: 25 domains, checked daily, with alerts in the dashboard and via webhooks. [Get Pro](https://greenlight5868.gumroad.com/l/xzxoay)
+- **Agency, $49/month or $490/year**: 200 domains checked daily, plus the white-label widget, white-label PDF reports and lead capture. [Get Agency](https://greenlight5868.gumroad.com/l/vmdksq)
+- **Agency+, $99/month or $990/year**: 1,000 domains checked daily, plus everything in Agency. [Get Agency+](https://greenlight5868.gumroad.com/l/ktoyhl)
+- **Agency Kit, $29 one-time**: white-label widget, PDF reports and lead capture, with no monitoring beyond the free domain. [Get the Agency Kit](https://greenlight5868.gumroad.com/l/stackgrade-agency-kit)
 
-After purchase, Gumroad emails you a license key. Paste it into the Agency Kit panel on the agency-widget page or the PDF report dialog. Your browser checks the key directly with Gumroad's public license API and stores the result in your browser's local storage. It re-checks at most once a day. The kit locks again if the purchase is refunded, charged back or disputed (and, if it is ever sold as a membership, when that membership is cancelled, ended or has a failed payment; one-time purchases are never affected by this). There is no other way to unlock it. You can use the same key on your other devices and browsers by pasting it there too.
+Email alerts coming soon; alerts via in-app feed and webhooks today. Compare plans on the [pricing page](https://299nhs7sjg-netizen.github.io/stackgrade/pricing/).
 
-### Is the white-label widget enforcement secure?
+### What does monitoring check?
 
-Honestly: only partly. StackGrade has no server, so the widget checks your license with Gumroad from the visitor's browser (once per page load) before it removes our branding. Your license key is visible in your page source, and someone who edits the page could bypass the check. Treat it as a convenience check, not DRM, and keep your key to your own sites.
+On every check, StackGrade takes a snapshot of each domain and compares it with the previous one. The snapshot covers:
+
+- the SPF record and the DMARC record and policy;
+- DKIM keys at common selectors (google, selector1, selector2, k1, s1, default);
+- MX records;
+- the Mozilla HTTP Observatory grade and each security-header test;
+- the technologies detected on the homepage;
+- the domain's expiry date and transfer lock;
+- open roles on public job boards.
+
+You get an alert when something changes, for example when DMARC drops from reject to none, an SPF include is removed, HSTS disappears, a new analytics script appears, or the domain is within 30 days of expiry. The first check sets the baseline. If a source cannot be reached, that part is treated as unknown and never reported as a change.
+
+### How do I get alerts?
+
+Alerts appear in the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/). You can also add a webhook (Slack, Discord or any https URL that accepts JSON), and every change is posted to it as soon as it is found. Email alerts are coming soon. StackGrade cannot send email yet, because no free email service can deliver to any address without a paid account or our own mail domain.
+
+### How do I start monitoring?
+
+Open the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/):
+
+- **Free:** click **Start free**. You get a private token, saved in your browser. Copy it if you want to use it on another device. Each network can create one free monitor per week.
+- **Paid plans:** paste the license key from your Gumroad receipt.
+
+Then add your domains. Each domain gets a fixed daily or weekly check time.
+
+### What happens when I cancel, or my payment fails?
+
+You can cancel a membership in Gumroad at any time. Your plan keeps working until the end of the period you already paid for, then monitoring pauses and white-label features lock. If the end of the period cannot be worked out, access locks when the cancellation is recorded. A membership with a failed payment, or one Gumroad marks as ended, locks right away. So does any purchase that is refunded, charged back or disputed. Licenses are re-checked with Gumroad at least once a day.
+
+### Can I upgrade?
+
+Yes. Buy the higher plan and paste its license key. If one key is valid for several StackGrade products, the highest plan applies. Monitors are tied to the key you used, so domains added with a free token or another key must be added again under the new key.
 
 ### Can I get a refund?
 
-Refunds are handled through Gumroad under Gumroad's refund policy; contact us via the Gumroad product page. A refunded purchase stops unlocking the Agency Kit at its next daily check.
+Refunds are handled through Gumroad under Gumroad's refund policy; contact us via the Gumroad product page. A refunded purchase stops working at its next license check (at most a day later).
+
+## White-label widget, PDF reports and lead capture
+
+### What do the Agency plans and the Agency Kit unlock?
+
+A **white-label widget** (your logo, name, brand color and call-to-action button, with the option to hide "Powered by StackGrade"), **white-label PDF reports** of any result, and **lead capture**. Any of these licenses unlocks them: Agency, Agency+ or the one-time Agency Kit. A Pro license covers monitoring only. Setup steps: [Agency Kit setup guide](https://299nhs7sjg-netizen.github.io/stackgrade/agency-kit/).
+
+### How does licensing work?
+
+After purchase, Gumroad emails you a license key. Paste it into the license panel on the [agency-widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), the PDF report dialog, or the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/). Your browser checks the key with Gumroad's public license API, and the StackGrade API checks it again for monitoring and leads. Both re-check at most once a day. You can use the same key on your other devices and browsers by pasting it there too.
+
+### What is lead capture?
+
+Turn on **Collect leads** in the widget builder. After a visitor sees their result, the widget shows a short "Want help fixing this?" form: name, email and a consent checkbox. Submissions are saved with the domain and grade, and you can see them in your dashboard and download them as CSV. You are responsible for contacting people lawfully. Visitors can remove their email with the [removal form](https://299nhs7sjg-netizen.github.io/stackgrade/remove/).
+
+### Is the white-label widget enforcement secure?
+
+Honestly: only partly. The widget checks your license with Gumroad from the visitor's browser (once per page load) before it removes our branding. Your license key is visible in your page source, and someone who edits the page could bypass the check. Treat it as a convenience check, not DRM, and keep your key to your own sites. Lead capture is checked by the StackGrade API, so it only stores leads for valid licenses.
 
 ## Privacy
 
 ### What data does StackGrade collect?
 
-None about the domains you check. There is no StackGrade server: all checks run in your browser, which queries public services directly. They are Google Public DNS or Cloudflare DNS (DNS-over-HTTPS), the domain's registry via RDAP, Mozilla HTTP Observatory (its scan history is public), and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing. Page views are counted with GoatCounter (open source, no cookies, no personal data); only the page path is sent, never the domain you check. Agency Kit license checks go from your browser straight to Gumroad.
+Grading runs in your browser, which queries public services directly: Google Public DNS or Cloudflare DNS (DNS-over-HTTPS), the domain's registry via RDAP, Mozilla HTTP Observatory (its scan history is public), and public job boards (Greenhouse, Lever, Ashby, Workable). For the tech-stack scan, the StackGrade API (a Cloudflare Worker) fetches the graded site's public homepage. The result is cached briefly in memory and not stored, and graded domains are not logged.
+
+If you use monitoring, the API stores your monitored domains, their latest snapshots and recent changes, and your webhook URL. Your license key is stored only as a one-way hash. Lead capture stores what visitors submit, for the agency that collected it. Page views are counted with GoatCounter (open source, no cookies, no personal data); only the page path is sent, never the domain you check. Full details are in the [privacy policy](https://299nhs7sjg-netizen.github.io/stackgrade/privacy/).
 
 ### What is stored in my browser?
 
-Mozilla scan results are cached in local storage for an hour, to save time on re-checks. If you use the Agency Kit, your license key, its last verification time and your branding settings are kept in local storage on your device. Clear your site data to remove them.
+Mozilla scan results are cached in local storage for an hour, to save time on re-checks. If you use a license or a free monitor token, the key or token, its last verification time and your branding settings are kept in local storage on your device. Clear your site data to remove them.
+
+### How do I remove my data?
+
+Use the [removal request form](https://299nhs7sjg-netizen.github.io/stackgrade/remove/) to remove your email from all agency lead lists, or to stop monitoring of a domain you own. Removing a monitor in the dashboard deletes its stored data.

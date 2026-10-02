@@ -1,86 +1,81 @@
-// Agency Kit licensing: client-side only (StackGrade has no backend).
+// StackGrade licensing in the browser (Agency Kit, Pro, Agency, Agency+). Rules live in ./tiers.js (shared with the API Worker).
 //
 // HONEST LIMITS: verification runs in the visitor's browser against Gumroad's public
 // license API. Anyone who edits this JavaScript or their localStorage can bypass it, and a
 // license key placed in a public embed snippet can be copied by anyone. This is a
 // convenience lock for honest customers, not DRM. There is no "I paid" / honor path.
 import { CONFIG } from './config.js';
+import { TIERS, VERIFY_URL, verifyLicense } from './tiers.js';
 
-export const VERIFY_URL = 'https://api.gumroad.com/v2/licenses/verify';
-export const STORE_KEY = 'sg-agency-kit';
+export { VERIFY_URL, TIERS };
+export const STORE_KEY = 'sg-agency-kit'; // kept for compatibility; now stores any StackGrade license (with its tier)
 export const DAY_MS = 24 * 60 * 60 * 1000;
 export const GRACE_MS = 7 * DAY_MS; // keep an already-verified license during Gumroad/network outages, max 7 days
 
 const memStore = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
 const defaultStore = () => { try { if (typeof localStorage !== 'undefined') return localStorage; } catch { /* blocked */ } return memStore(); };
+const https = (u) => (/^https:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '');
 
-export function productId(cfg = CONFIG) { return String(cfg?.agencyKit?.productId || '').trim(); }
-export function checkoutUrl(cfg = CONFIG) {
-    const u = String(cfg?.agencyKit?.checkoutUrl || '').trim();
-    return /^https:\/\//i.test(u) ? u : '';
+// { tierId: productId } for every plan in the config.
+export function products(cfg = CONFIG) {
+    const out = { agencykit: String(cfg?.agencyKit?.productId || '').trim() };
+    for (const [t, v] of Object.entries(cfg?.tiers || {})) out[t] = String(v?.productId || '').trim();
+    return out;
 }
-export function isConfigured(cfg = CONFIG) { return !!productId(cfg); }
+export function productId(cfg = CONFIG) { return String(cfg?.agencyKit?.productId || '').trim(); }
+export function checkoutUrl(cfg = CONFIG) { return https(cfg?.agencyKit?.checkoutUrl); }
+export function tierCheckout(tier, cfg = CONFIG) { return tier === 'agencykit' ? checkoutUrl(cfg) : https(cfg?.tiers?.[tier]?.checkoutUrl); }
+export function isConfigured(cfg = CONFIG) { return Object.values(products(cfg)).some(Boolean); }
+const pkey = (cfg) => JSON.stringify(products(cfg));
 
-// Returns { ok: true } | { ok: false, definitive: bool, reason }
-export async function verifyKey(key, { cfg = CONFIG, fetchImpl = globalThis.fetch } = {}) {
-    const pid = productId(cfg);
-    const k = String(key || '').trim();
-    if (!pid) return { ok: false, definitive: true, reason: 'Agency Kit is not on sale yet.' };
-    if (!k || k.length < 8 || k.length > 200) return { ok: false, definitive: true, reason: 'Enter the license key from your Gumroad receipt.' };
-    const body = new URLSearchParams({ product_id: pid, license_key: k, increment_uses_count: 'false' });
-    let res; let data = null;
-    try {
-        res = await fetchImpl(VERIFY_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() });
-        data = await res.json().catch(() => null);
-    } catch {
-        return { ok: false, definitive: false, reason: 'Could not reach Gumroad to verify the license. Check your connection and try again.' };
-    }
-    if (!data || (res.status >= 500 && data.success !== false)) return { ok: false, definitive: false, reason: 'Gumroad did not answer the license check. Try again shortly.' };
-    if (data.success !== true) return { ok: false, definitive: true, reason: data.message || 'That license key is not valid for Agency Kit.' };
-    const p = data.purchase || {};
-    if (p.refunded || p.chargebacked || p.disputed) return { ok: false, definitive: true, reason: 'This purchase was refunded, charged back or disputed, so the license is no longer active.' };
-    // One-time purchases have these fields null/absent, so they never lock; they only matter if the product is a membership.
-    for (const f of ['subscription_ended_at', 'subscription_cancelled_at', 'subscription_failed_at']) {
-        if (p[f]) return { ok: false, definitive: true, reason: `This membership is no longer active (${f.replace('subscription_', '').replace('_at', '')} ${String(p[f]).slice(0, 10)}).` };
-    }
-    return { ok: true };
+// Returns { ok: true, tier } | { ok: false, definitive: bool, reason }
+export async function verifyKey(key, { cfg = CONFIG, fetchImpl = globalThis.fetch, now = Date.now() } = {}) {
+    if (!isConfigured(cfg)) return { ok: false, definitive: true, reason: 'Agency Kit is not on sale yet.' };
+    return verifyLicense(key, products(cfg), { fetchImpl, now });
 }
 
 function read(store) { try { return JSON.parse(store.getItem(STORE_KEY) || 'null'); } catch { return null; } }
+const feat = (tier) => ({ tier, plan: TIERS[tier]?.name || tier, whiteLabel: !!TIERS[tier]?.whiteLabel, leads: !!TIERS[tier]?.leads });
 
 // Activate a new key (always hits Gumroad).
 export async function activate(key, { cfg = CONFIG, fetchImpl, store = defaultStore(), now = Date.now() } = {}) {
-    const r = await verifyKey(key, { cfg, fetchImpl });
-    if (r.ok) store.setItem(STORE_KEY, JSON.stringify({ key: String(key).trim(), productId: productId(cfg), verifiedAt: now, lastOkAt: now }));
-    return r;
+    const r = await verifyKey(key, { cfg, fetchImpl, now });
+    if (r.ok) store.setItem(STORE_KEY, JSON.stringify({ key: String(key).trim(), tier: r.tier, products: pkey(cfg), verifiedAt: now, lastOkAt: now, lockAt: r.lockAt || null }));
+    return r.ok ? { ...r, ...feat(r.tier) } : r;
 }
 
 export function deactivate({ store = defaultStore() } = {}) { store.removeItem(STORE_KEY); }
 
-// Current status. Re-verifies with Gumroad at most once per DAY_MS. Locks on any definitive failure.
+// Current status. Re-verifies with Gumroad at most once per DAY_MS (and when a cancelled membership's paid period ends).
+// Locks on any definitive failure. `unlocked` = white-label features (Agency Kit, Agency, Agency+).
 export async function status({ cfg = CONFIG, fetchImpl, store = defaultStore(), now = Date.now() } = {}) {
     if (!isConfigured(cfg)) return { unlocked: false, configured: false, reason: 'Agency Kit is coming soon.' };
     const s = read(store);
-    if (!s || !s.key || s.productId !== productId(cfg)) return { unlocked: false, configured: true };
-    if (now - (s.verifiedAt || 0) < DAY_MS) return { unlocked: true, configured: true, key: s.key, cached: true };
-    const r = await verifyKey(s.key, { cfg, fetchImpl });
+    if (!s || !s.key || (s.products && s.products !== pkey(cfg)) || (!s.products && s.productId !== productId(cfg))) return { unlocked: false, configured: true, licensed: false };
+    const tier = s.tier || 'agencykit';
+    const ok = (extra = {}) => ({ ...feat(extra.tier || tier), unlocked: !!TIERS[extra.tier || tier]?.whiteLabel, licensed: true, configured: true, key: s.key, ...extra });
+    if (now - (s.verifiedAt || 0) < DAY_MS && !(s.lockAt && now >= s.lockAt)) return ok({ cached: true });
+    const r = await verifyKey(s.key, { cfg, fetchImpl, now });
     if (r.ok) {
-        store.setItem(STORE_KEY, JSON.stringify({ ...s, verifiedAt: now, lastOkAt: now }));
-        return { unlocked: true, configured: true, key: s.key };
+        store.setItem(STORE_KEY, JSON.stringify({ ...s, tier: r.tier, products: pkey(cfg), verifiedAt: now, lastOkAt: now, lockAt: r.lockAt || null }));
+        return ok({ tier: r.tier });
     }
-    if (!r.definitive && now - (s.lastOkAt || 0) < GRACE_MS) {
+    if (!r.definitive && now - (s.lastOkAt || 0) < GRACE_MS && !(s.lockAt && now >= s.lockAt)) {
         store.setItem(STORE_KEY, JSON.stringify({ ...s, verifiedAt: now - DAY_MS + 60 * 60 * 1000 })); // retry in ~1h
-        return { unlocked: true, configured: true, key: s.key, grace: true };
+        return ok({ grace: true });
     }
     store.removeItem(STORE_KEY);
-    return { unlocked: false, configured: true, reason: r.reason };
+    return { unlocked: false, licensed: false, configured: true, reason: r.reason };
 }
 
 // Widget: verify a license passed in an embed snippet, once per page load (in-memory cache).
 const pageCache = new Map();
 export function verifyForWidget(key, opts = {}) {
     const k = String(key || '').trim();
-    if (!pageCache.has(k)) pageCache.set(k, verifyKey(k, opts).catch(() => ({ ok: false, definitive: false })));
+    if (!pageCache.has(k)) {
+        pageCache.set(k, verifyKey(k, opts).then((r) => (r.ok && !TIERS[r.tier]?.whiteLabel ? { ok: false, definitive: true, reason: `The ${TIERS[r.tier]?.name} plan does not include the white-label widget.` } : r.ok ? { ...r, leadsOk: !!TIERS[r.tier]?.leads } : r))
+            .catch(() => ({ ok: false, definitive: false })));
+    }
     return pageCache.get(k);
 }
 export function _clearWidgetCache() { pageCache.clear(); }
@@ -103,6 +98,7 @@ export function cleanBrand(b = {}) {
     const cta = String(b.cta || '').trim().slice(0, 40); if (cta) out.cta = cta;
     const ctaUrl = String(b.ctaUrl || '').trim(); if (/^https:\/\/[^\s"'<>]{4,500}$/i.test(ctaUrl)) out.ctaUrl = ctaUrl;
     if (b.hidePowered) out.hidePowered = true;
+    if (b.leads) out.leads = true;
     return out;
 }
 export async function encodeConfig(brand, licenseKey) {

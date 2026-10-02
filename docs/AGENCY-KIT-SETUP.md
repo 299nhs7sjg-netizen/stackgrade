@@ -1,6 +1,6 @@
 # Agency Kit setup guide
 
-The StackGrade Agency Kit is a **$29 one-time purchase** that unlocks a white-label audit widget for your website and white-label PDF reports for your clients. It takes about five minutes to set up.
+The StackGrade Agency Kit is a **$29 one-time purchase** that unlocks a white-label audit widget for your website and white-label PDF reports for your clients. It takes about five minutes to set up. The same white-label features are included in the **Agency** ($49/month or $490/year) and **Agency+** ($99/month or $990/year) plans, which add daily monitoring of 200 or 1,000 domains; this guide works for those license keys too. See [pricing](https://299nhs7sjg-netizen.github.io/stackgrade/pricing/).
 
 ## 1. Buy the Agency Kit
 
@@ -12,7 +12,7 @@ Gumroad shows your license key on the purchase confirmation page and in the **re
 
 ## 3. Activate it
 
-Open the [agency widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), paste the key into the **License key** box and click **Activate**. Your browser checks the key directly with Gumroad; when it is accepted, the panel turns green and says "Agency Kit active". Nothing is sent to a StackGrade server (there isn't one).
+Open the [agency widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), paste the key into the **License key** box and click **Activate**. Your browser checks the key directly with Gumroad; when it is accepted, the panel turns green and says "Agency Kit license active" (or "Agency license active"). A Pro key is accepted for monitoring but does not unlock white-label features.
 
 ## 4. Build your white-label widget
 
@@ -22,6 +22,7 @@ On the same page, fill in the widget builder:
 - **Logo URL**: a public `https://` link to your logo image (PNG or SVG, ideally about 40px tall).
 - **Button text** and **button link**: for example "Book a free audit call" linking to your contact page.
 - **Hide "Powered by StackGrade"**.
+- **Collect leads** (optional): after the result, visitors see a short "Want help fixing this?" form (name, email, consent). Leads appear in the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/) once you paste the same key there, and can be downloaded as CSV. The form links to the StackGrade [privacy policy](https://299nhs7sjg-netizen.github.io/stackgrade/privacy/).
 
 The preview updates as you type. Click **Copy** and paste the snippet into your site where the widget should appear. The snippet contains your license key, which visitors can see in your page source, so only use it on your own sites.
 
@@ -36,6 +37,6 @@ Activation is stored in each browser's local storage. On another computer or bro
 ## Good to know
 
 - The license is re-checked with Gumroad at most once a day. If Gumroad cannot be reached, an activated browser stays unlocked for up to 7 days.
-- A refunded, charged-back or disputed purchase stops working at the next check.
+- A refunded, charged-back or disputed purchase stops working at the next check. A cancelled Agency membership keeps working until the end of the paid period; a failed or ended membership locks right away.
 - The white-label widget checks your key with Gumroad on every page load and falls back to the free, StackGrade-branded widget if the key is not valid.
 - Questions or refunds: contact the seller through the Gumroad product page. More answers in the [FAQ](https://299nhs7sjg-netizen.github.io/stackgrade/faq/).

@@ -8,11 +8,11 @@ const f = $('#wlform');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function readForm() {
-    return { name: f.agency.value, logo: f.logo.value, color: f.color.value, cta: f.cta.value, ctaUrl: f.ctaUrl.value, hidePowered: f.hidePowered.checked };
+    return { name: f.agency.value, logo: f.logo.value, color: f.color.value, cta: f.cta.value, ctaUrl: f.ctaUrl.value, hidePowered: f.hidePowered.checked, leads: f.leads.checked };
 }
 function fill(b) {
     f.agency.value = b.name || ''; f.logo.value = b.logo || ''; f.color.value = b.color ? `#${b.color}` : '#0f172a';
-    f.cta.value = b.cta || ''; f.ctaUrl.value = b.ctaUrl || ''; f.hidePowered.checked = !!b.hidePowered;
+    f.cta.value = b.cta || ''; f.ctaUrl.value = b.ctaUrl || ''; f.hidePowered.checked = !!b.hidePowered; f.leads.checked = !!b.leads;
 }
 function storedKey() { try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null')?.key || ''; } catch { return ''; } }
 
@@ -46,6 +46,7 @@ async function update() {
     const fr = $('#wlprev');
     if (fr.dataset.src !== src) { fr.dataset.src = src; fr.src = 'about:blank'; setTimeout(() => { fr.src = src; }, 0); }
     for (const el of document.querySelectorAll('.paid')) el.disabled = !st.unlocked;
+    const lc = f.leads; lc.disabled = !st.unlocked || !st.leads;
 }
 
 fill(loadBrand());

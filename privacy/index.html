@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy policy | StackGrade</title>
+<meta name="description" content="What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests.">
+<link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/privacy/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="Privacy policy | StackGrade">
+<meta property="og:description" content="What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/privacy/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/home.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade undefined","url":"https://299nhs7sjg-netizen.github.io/stackgrade/privacy/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests."}</script>
+
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="/stackgrade/pricing/">Pricing</a><a href="/stackgrade/app/">Monitor</a><a href="/stackgrade/faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero"><h1>Privacy policy</h1></section><section class="seo faqdoc"><p>Last updated: October 1, 2026</p>
+<p>StackGrade is a website and email health grader run by Wes Green. This page explains what data StackGrade handles, where, and for how long. Questions or requests: use the <a href="/stackgrade/remove/">removal and privacy request form</a> or <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">open an issue on GitHub</a>.</p>
+<h2 id="the-free-grader-runs-in-your-browser">The free grader runs in your browser</h2>
+<p>When you grade a domain, your browser asks public services directly:</p>
+<ul><li><b>Google Public DNS or Cloudflare DNS</b> (DNS-over-HTTPS) for SPF, DMARC, DKIM and MX records.</li><li><b>The domain's registry</b> (RDAP) for expiry and transfer-lock data.</li><li><b>Mozilla HTTP Observatory</b> for security headers. Its scan history is public.</li><li><b>Public job boards</b> (Greenhouse, Lever, Ashby, Workable) for the hiring signal.</li></ul>
+<p>StackGrade does not receive these results and does not keep a record of which domains you grade.</p>
+<h2 id="the-stackgrade-api">The StackGrade API</h2>
+<p>Some features use the StackGrade API, a Cloudflare Worker at <code>api.stackgrade.workers.dev</code>:</p>
+<ul><li><b>Tech-stack scan:</b> the domain you grade is sent to the API, which fetches that site's public homepage and reads its HTML tags to detect the CMS, analytics and scripts. The result is kept only in short-lived memory (up to 6 hours) to avoid repeat fetches. It is not written to storage.</li><li><b>License checks:</b> your Gumroad license key is sent to the API and checked with Gumroad. The API stores a one-way hash of the key as your account ID, plus your plan and the time of the last check. It does not store the key itself.</li><li><b>Monitoring:</b> for each domain you monitor, the API stores the domain, its latest snapshot (public DNS records, Mozilla Observatory results, detected technologies, expiry date, job board count) and its 25 most recent change events. If you set a webhook URL, it is stored so alerts can be sent to it.</li><li><b>Free monitor token:</b> the free plan uses a random token instead of a license. To limit abuse, the API stores a salted one-way hash of your network (the first three parts of your IPv4 address, or the IPv6 /48 prefix) for 7 days when you create a free monitor.</li><li><b>Rate limiting:</b> IP addresses are used briefly in memory to limit request rates. They are not stored.</li></ul>
+<h2 id="lead-capture-agency-widgets">Lead capture (agency widgets)</h2>
+<p>Agencies on plans with lead capture can show a &quot;Want help fixing this?&quot; form in their widget. If you submit it, your <b>name, email, the domain you graded, its grade, your consent and the time</b> are stored for that agency, and only that agency can see or export them. The agency decides how to use your details and is responsible for doing so lawfully; StackGrade stores them on the agency's behalf. Leads are kept until the agency deletes them or you ask us to remove them.</p>
+<h2 id="payments">Payments</h2>
+<p>Payments, receipts, refunds and license keys are handled by <b>Gumroad</b>. StackGrade never sees your card details. Gumroad's privacy policy applies to your purchase.</p>
+<h2 id="analytics">Analytics</h2>
+<p>Page views are counted with <b>GoatCounter</b>, which is open source and uses no cookies or personal data. Only the page path is sent, never the domain you check.</p>
+<h2 id="data-in-your-browser">Data in your browser</h2>
+<p>Your browser keeps Mozilla scan results for an hour. If you use a license, it also keeps the license key, its last check time, your free monitor token and your widget branding. Clearing your site data removes all of them.</p>
+<h2 id="service-providers">Service providers</h2>
+<ul><li>Cloudflare (API hosting and storage)</li><li>GitHub Pages (website hosting)</li><li>Gumroad (payments and license keys)</li><li>GoatCounter (cookieless page-view counts)</li></ul>
+<p>We do not sell personal data and show no ads.</p>
+<h2 id="your-choices-and-removal-requests">Your choices and removal requests</h2>
+<p>Use the <a href="/stackgrade/remove/">removal request form</a> to:</p>
+<ul><li><b>Remove your email from agency lead lists.</b> Matching leads are deleted, and the address is blocked from being stored again.</li><li><b>Stop monitoring of a domain you own.</b> New monitors for the domain are refused, and existing monitors stop checking it.</li></ul>
+<p>Removing a monitor in the dashboard deletes its snapshot and events right away.</p>
+<h2 id="changes">Changes</h2>
+<p>If this policy changes, the date at the top will change too.</p></section>
+  
+  
+  
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a> · <a href="/stackgrade/agency-kit/">Agency Kit</a> · <a href="/stackgrade/pricing/">Pricing</a> · <a href="/stackgrade/app/">Monitoring dashboard</a> · <a href="/stackgrade/faq/">FAQ</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a> · <a href="/stackgrade/terms/">Terms</a> · <a href="/stackgrade/privacy/">Privacy</a> · <a href="/stackgrade/remove/">Removal requests</a></p>
+  <p><a href="https://twelve.tools" target="_blank"><img src="https://twelve.tools/badge0-dark.svg" alt="Featured on Twelve Tools" width="200" height="54"></a></p>
+</footer>
+
+<script>window.goatcounter={path:function(){return location.pathname}};</script>
+<script data-goatcounter="https://greentools.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

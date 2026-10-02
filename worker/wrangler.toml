@@ -1,0 +1,27 @@
+# StackGrade API on Cloudflare Workers (FREE plan only). No secrets here.
+# Secrets are set with `wrangler secret put ADMIN_KEY` / `INTERNAL_KEY` and never committed.
+# The account is selected by CLOUDFLARE_API_TOKEN (+ optional CLOUDFLARE_ACCOUNT_ID) in the environment.
+name = "api"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_als"]
+workers_dev = true
+preview_urls = false
+
+kv_namespaces = [{ binding = "KV", id = "5695a5e44f72471eb4f7a21f3a3f4301" }]
+
+# The cron fans out one monitor check per invocation through this self-binding, so each check gets its own
+# 50-subrequest / 10 ms CPU budget on the free plan.
+services = [{ binding = "SELF", service = "api" }]
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[vars]
+PRODUCT_AGENCY_KIT = "nexe9SLeFPs0uJlyO6EYkw=="
+PRODUCT_PRO = "yQKekf6hTcpoK_7Xp83jPg=="
+PRODUCT_AGENCY = "SDoHJkCBWhp7MOLhe3RhXQ=="
+PRODUCT_AGENCY_PLUS = "O0PyQiJuzM8-c9NCThQKzQ=="
+
+[observability]
+enabled = true

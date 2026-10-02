@@ -1,5 +1,7 @@
 import { grade, score, parseInput, toUnicode, GROUPS, WEIGHTS } from './checks.js';
-import { verifyForWidget, decodeConfig, checkoutUrl, isConfigured, STORE_KEY } from './license.js';
+import { verifyForWidget, decodeConfig, checkoutUrl, isConfigured, STORE_KEY, tierCheckout } from './license.js';
+import { CONFIG } from './config.js';
+import { plansLine, buyLink, ALERTS_NOTE } from './plans.js';
 
 const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const BODY = document.body.dataset;
@@ -94,6 +96,7 @@ function render(rep, done) {
                     <p>${esc(c.summary)}</p>${c.fix ? `<details><summary>How to fix</summary><p>${esc(c.fix)}</p>${c.record ? codeBlock(c.record) : ''}</details>` : ''}</article>`).join('')}</section>`
                 : '<section class="group"><h2>No problems found <small>in the checks that ran</small></h2></section>';
             html += WL ? `<p class="seefull">${wlCta(true)}</p>` : `<p class="seefull"><a class="btn btn-acc" target="_blank" rel="noopener" href="${esc(shareUrl)}">See full report →</a></p>`;
+            html += leadForm();
         } else html += '<div class="pending"><span class="spin"></span>Checking email, website security and domain…</div>';
         el.innerHTML = html;
         postHeight();
@@ -114,10 +117,37 @@ function render(rep, done) {
     }
     if (done && rep.observatory?.url && !WL) html += `<p class="d" style="color:var(--mut);font-size:13px;margin-top:14px">Website security data: <a href="${esc(rep.observatory.url)}" target="_blank" rel="noopener">Mozilla HTTP Observatory report for ${esc(rep.observatory.host)}</a>. Grade calculated by StackGrade v${esc(rep.version)} on ${esc(new Date(rep.finishedAt).toLocaleString())}.</p>`;
     if (done && !WIDGET) html += `<section class="again"><h2>Share this report or check another domain</h2>${shareRow(shareUrl, shareText, s.letter, false)}</section>`;
-    if (done && WL) html += `<div class="share">${wlCta()}</div>`;
+    if (done && WL) html += `<div class="share">${wlCta()}</div>${leadForm()}`;
     el.innerHTML = html;
     postHeight();
 }
+// Lead capture (white-label widgets on plans with leads, when the agency switched it on in the builder).
+let leadState = null; // null | 'sending' | 'sent' | error message
+const T0 = Date.now();
+function leadForm() {
+    if (!WL?.leads || !current) return '';
+    const who = esc(WL.name || 'This agency');
+    if (leadState === 'sent') return `<section class="group leadbox"><h2>Thanks!</h2><p>${who} has your details and this report.</p></section>`;
+    return `<section class="group leadbox"><h2>Want help fixing this?</h2><p>Send this report to ${who} and they will get back to you.</p>
+      <form class="leadform" autocomplete="on"><input name="name" maxlength="80" placeholder="Your name" autocomplete="name">
+      <input name="email" type="email" required maxlength="200" placeholder="Work email" autocomplete="email">
+      <input name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <label class="consent"><input type="checkbox" name="consent" required> ${who} may contact me about this report.</label>
+      <button class="btn btn-acc" type="submit"${leadState === 'sending' ? ' disabled' : ''}>Send</button>
+      ${leadState && leadState !== 'sending' ? `<p class="kit-msg">${esc(leadState)}</p>` : ''}
+      <p class="d">${who} receives your name, email, and this domain and grade. They are stored only for ${who} by the StackGrade API (<a href="${SITE}privacy/" target="_blank" rel="noopener">privacy</a> · <a href="${SITE}remove/" target="_blank" rel="noopener">remove my data</a>).</p></form></section>`;
+}
+async function sendLead(form) {
+    const f = new FormData(form);
+    leadState = 'sending'; render(current, true);
+    try {
+        const r = await fetch(`${CONFIG.api}/v1/leads`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ license: WL.lic, name: f.get('name'), email: f.get('email'), website: f.get('website'), consent: !!f.get('consent'), domain: current.domain, grade: current.letter, score: current.score, elapsedMs: Date.now() - T0 }) });
+        const j = await r.json().catch(() => ({}));
+        leadState = r.ok && j.ok ? 'sent' : (j.error || 'Could not send. Please try again.');
+    } catch { leadState = 'Could not send. Please try again.'; }
+    render(current, true);
+}
+document.addEventListener('submit', (e) => { if (e.target.matches?.('.leadform')) { e.preventDefault(); sendLead(e.target); } });
 function wlCta(withAll = false) {
     const cta = WL.cta && WL.ctaUrl ? `<a class="btn btn-acc" target="_blank" rel="noopener" href="${esc(WL.ctaUrl)}">${esc(WL.cta)}</a>` : WL.cta ? `<span class="btn btn-acc" style="cursor:default">${esc(WL.cta)}</span>` : '';
     return `${withAll ? '<button class="btn showall" type="button">Show all checks</button> ' : ''}${cta}`;
@@ -131,7 +161,7 @@ function shareRow(url, text, letterVal, top) {
         ${top && letterVal ? '<button class="btn card" type="button">Download grade card</button>' : ''}
         ${top ? '<button class="btn rerun" type="button">Re-check</button>' : ''}
         ${top && letterVal ? `<button class="btn wlpdf" type="button" title="Agency Kit">White-label PDF report</button>${kitUpsell('kitbuy-inline')}` : ''}</div>
-        ${!top ? kitUpsell('kitbuy-box') : ''}`;
+        ${!top ? planUpsell(url) + kitUpsell('kitbuy-box') : ''}`;
 }
 // Agency Kit upsell link (hidden when no checkout URL is configured, or when this browser already has a license).
 function kitUpsell(cls) {
@@ -140,7 +170,16 @@ function kitUpsell(cls) {
     if (!buy || !isConfigured() || has) return '';
     return cls === 'kitbuy-box'
         ? `<p class="kitbuy-box">For agencies: send this report as a PDF with your own logo and colors, and embed a white-label grader on your site. <a class="btn btn-acc" href="${esc(buy)}" target="_blank" rel="noopener">Get the Agency Kit, $29</a></p>`
-        : `<a class="kitbuy-inline" href="${esc(buy)}" target="_blank" rel="noopener">Get the Agency Kit, $29</a>`;
+        : `<a class="kitbuy-inline" href="${esc(buy)}" target="_blank" rel="noopener">Get the Agency Kit, $29</a>${buyLink('agency', 'or Agency, $49/mo', 'kitbuy-inline')}`;
+}
+// Monitoring upsell in the "share / next steps" box.
+function planUpsell(url) {
+    const d = current?.display || current?.domain || new URL(url).searchParams.get('d') || '';
+    let licensed = false; try { licensed = !!localStorage.getItem(STORE_KEY); } catch { /* ignore */ }
+    const add = `/stackgrade/app/?add=${encodeURIComponent(d)}`;
+    if (licensed) return `<p class="plan-upsell"><b>Monitor ${esc(d)}</b> and get alerts when its email, security or tech setup changes. <a class="btn btn-acc" href="${add}">Add to my monitors</a></p>`;
+    return `<div class="plan-upsell"><p style="margin:0 0 6px"><b>Know when ${esc(d)} changes.</b> Monitoring re-checks SPF, DMARC, DKIM, MX, security headers, tech stack, expiry and hiring, and alerts you to changes. <a class="btn btn-acc" href="${add}">Monitor 1 domain free</a></p>
+      <p class="d" style="margin:0">${plansLine()}. ${esc(ALERTS_NOTE)} <a href="/stackgrade/pricing/">Compare plans</a></p></div>`;
 }
 function postHeight() {
     if (WIDGET && window.parent !== window) window.parent.postMessage({ type: 'stackgrade:height', height: document.documentElement.scrollHeight }, '*');
@@ -174,7 +213,7 @@ async function run(input, { push = true, fresh = false } = {}) {
     render({ domain: p.domain, display: name, checks: [] }, false);
     if (!WIDGET) $('#result').scrollIntoView({ behavior: 'smooth', block: 'start' });
     try {
-        const rep = await grade(p.domain, { fresh, dkimSelectors: selectors, onUpdate: (r) => { if (id === runId) render(r, false); } });
+        const rep = await grade(p.domain, { fresh, dkimSelectors: selectors, api: CONFIG.api, onUpdate: (r) => { if (id === runId) render(r, false); } });
         if (id !== runId) return;
         if (rep.error) { err.textContent = rep.error; err.hidden = false; $('#result').hidden = true; return; }
         if (rep.nonexistent) { renderNonexistent(rep); return; }
@@ -253,7 +292,7 @@ if (WIDGET) {
             if (!brand) { console.info('StackGrade widget: white-label config does not match the license key; showing free branding.'); return; }
             const r = await verifyForWidget(lic);
             if (!r.ok) { console.info(`StackGrade widget: Agency Kit license not accepted (${r.reason}); showing free branding.`); return; }
-            applyWhiteLabel(brand);
+            applyWhiteLabel({ ...brand, leads: !!(brand.leads && r.leadsOk), lic });
         })().catch(() => {});
     }
 }

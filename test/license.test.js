@@ -16,7 +16,7 @@ const ok = (purchase = {}) => json(200, { success: true, uses: 1, purchase: { re
 
 test('valid key unlocks; request is correct and does not increment uses', async () => {
     const f = mockFetch(() => ok());
-    assert.deepEqual(await verifyKey(KEY, { cfg, fetchImpl: f }), { ok: true });
+    const r0 = await verifyKey(KEY, { cfg, fetchImpl: f }); assert.equal(r0.ok, true); assert.equal(r0.tier, 'agencykit');
     assert.equal(f.calls[0].url, 'https://api.gumroad.com/v2/licenses/verify');
     assert.equal(f.calls[0].body.get('product_id'), 'PROD123');
     assert.equal(f.calls[0].body.get('license_key'), KEY);
@@ -67,7 +67,7 @@ test('re-verifies at most once a day, then locks when the membership is cancelle
     assert.equal(f.calls.length, 2);
     mode = 'cancelled';
     const s = await status({ cfg, fetchImpl: f, store, now: t0 + 2 * DAY_MS + 2 });
-    assert.equal(s.unlocked, false); assert.match(s.reason, /no longer active/);
+    assert.equal(s.unlocked, false); assert.match(s.reason, /cancelled/);
     assert.equal(store.getItem(STORE_KEY), null);
 });
 test('refund after activation locks on the next daily check', async () => {

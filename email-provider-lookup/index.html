@@ -24,7 +24,7 @@
 <body data-focus="provider,mx" data-focus-title="Email provider">
 <header class="top">
   <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
-  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="/stackgrade/faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="/stackgrade/pricing/">Pricing</a><a href="/stackgrade/app/">Monitor</a><a href="/stackgrade/faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
 </header>
 <main>
   <section class="hero" id="hero">
@@ -54,12 +54,12 @@
     <h3>Honest by design</h3>
     <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
     <h3>Privacy</h3>
-    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing. Page views are counted with <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a> (open source, no cookies, no personal data); only the page path is sent, never the domain you check.</p>
+    <p>The checks run in your browser, which asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). For the tech-stack scan, the StackGrade API fetches the site's public homepage; the result is kept briefly in memory, never stored. Graded domains are not logged. Details in the <a href="/stackgrade/privacy/">privacy policy</a>. Page views are counted with <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a> (open source, no cookies, no personal data); only the page path is sent, never the domain you check.</p>
   </section>
 </main>
 <footer class="foot">
-  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a> · <a href="/stackgrade/agency-kit/">Agency Kit</a> · <a href="/stackgrade/faq/">FAQ</a></p>
-  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a> · <a href="/stackgrade/agency-kit/">Agency Kit</a> · <a href="/stackgrade/pricing/">Pricing</a> · <a href="/stackgrade/app/">Monitoring dashboard</a> · <a href="/stackgrade/faq/">FAQ</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a> · <a href="/stackgrade/terms/">Terms</a> · <a href="/stackgrade/privacy/">Privacy</a> · <a href="/stackgrade/remove/">Removal requests</a></p>
   <p><a href="https://twelve.tools" target="_blank"><img src="https://twelve.tools/badge0-dark.svg" alt="Featured on Twelve Tools" width="200" height="54"></a></p>
 </footer>
 <script type="module" src="/stackgrade/assets/app.js"></script>

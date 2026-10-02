@@ -123,7 +123,7 @@ export function makeDns() {
         for (const t of tries) {
             try {
                 const res = await t();
-                if (!res.ok) { lastErr = new Error(`DNS HTTP ${res.status}`); continue; }
+                if (!res.ok) { res.body?.cancel?.().catch?.(() => {}); lastErr = new Error(`DNS HTTP ${res.status}`); continue; }
                 const j = await res.json();
                 if (j.Status !== 0 && j.Status !== 3) { lastErr = new Error(`DNS status ${j.Status}`); continue; } // SERVFAIL etc: try other resolver
                 const answers = (j.Answer || []).filter((a) => a.type === TYPE[type]).map((a) => (type === 'TXT' ? cleanTxt(a.data) : String(a.data)));
@@ -425,7 +425,7 @@ const WEB_FIX = {
 };
 const OBS_TEST = { https: 'redirection', hsts: 'strict-transport-security', csp: 'content-security-policy', xfo: 'x-frame-options', xcto: 'x-content-type-options', referrer: 'referrer-policy', cookies: 'cookies' };
 
-function webChecks(obs) {
+export function webChecks(obs) {
     const ids = Object.keys(OBS_TEST);
     const source = 'Mozilla HTTP Observatory (public scan)';
     if (obs.error || obs.statusCode >= 400 || !obs.tests || !Object.keys(obs.tests).length) {
@@ -482,6 +482,7 @@ export async function rdapLookup(org) {
     let res;
     try { res = await fetchT(`${base}domain/${encodeURIComponent(org)}`, { headers: { accept: 'application/rdap+json' } }, 10000); }
     catch (e) { return { error: `the .${tld} registry's RDAP server ${e.name === 'AbortError' ? 'timed out' : 'blocked the request from the browser (CORS) or is unreachable'}` }; }
+    if (!res.ok) res.body?.cancel?.().catch?.(() => {}); // free the connection (Workers limits open connections)
     if (res.status === 404) return { notFound: true };
     if (!res.ok) return { error: `the .${tld} registry returned HTTP ${res.status}` };
     const d = await res.json();
@@ -570,7 +571,8 @@ export function detectStack({ headers = {}, mxHosts = [], txt = [], ns = [] }) {
 
 // ---------- Hiring signal (public ATS job boards; not scored) ----------
 const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-export async function hiringSignal(org) {
+// only: optional provider name to limit the lookups (used by the monitoring API to save requests and CPU).
+export async function hiringSignal(org, { only = null } = {}) {
     const label = org.split('.')[0];
     const slug = label;
     const onDomain = (u) => { try { const h = new URL(u).hostname; return h === org || h.endsWith(`.${org}`); } catch { return false; } };
@@ -580,7 +582,7 @@ export async function hiringSignal(org) {
         if (t.includes(org)) return 'confirmed';
         return label.length >= 4 && new RegExp(`\\b${label.replace(/[^a-z0-9]/g, '')}\\b`).test(t) ? 'likely' : null;
     };
-    const getJson = async (u) => { const r = await fetchT(u, {}, 8000); return r.ok ? r.json() : null; };
+    const getJson = async (u) => { const r = await fetchT(u, {}, 8000); if (!r.ok) { r.body?.cancel?.().catch?.(() => {}); return null; } return r.json(); };
     const providers = [
         async () => {
             const [b, j] = await Promise.all([getJson(`https://boards-api.greenhouse.io/v1/boards/${slug}`), getJson(`https://boards-api.greenhouse.io/v1/boards/${slug}/jobs`)]);
@@ -609,14 +611,25 @@ export async function hiringSignal(org) {
             return conf && { provider: 'Workable', name: j.name, count: j.jobs.length, url: `https://apply.workable.com/${slug}/`, confidence: conf };
         },
     ];
-    const results = (await Promise.all(providers.map((p) => p().catch(() => null)))).filter(Boolean);
+    const NAMES = ['Greenhouse', 'Lever', 'Ashby', 'Workable'];
+    const use = only ? providers.filter((_, i) => NAMES[i] === only) : providers;
+    const results = (await Promise.all(use.map((p) => p().catch(() => null)))).filter(Boolean);
     const rank = { confirmed: 0, likely: 1, possible: 2 };
     results.sort((a, b) => rank[a.confidence] - rank[b.confidence] || b.count - a.count);
     return results;
 }
 
 // ---------- orchestrator ----------
-export async function grade(input, { onUpdate = () => {}, fresh = false, dkimSelectors = [] } = {}) {
+// api: optional StackGrade API base URL. When set, the homepage HTML is fingerprinted server-side (CMS, analytics, ...).
+export async function fetchFingerprint(api, domain) {
+    try {
+        const r = await fetchT(`${api.replace(/\/$/, '')}/v1/fingerprint?domain=${encodeURIComponent(domain)}`, {}, 15000);
+        if (r.status === 429) return { ok: false, error: 'the page scanner is busy (rate limit); try again in a minute' };
+        const j = await r.json();
+        return j && typeof j === 'object' ? j : { ok: false, error: 'unexpected scanner response' };
+    } catch (e) { return { ok: false, error: e.name === 'AbortError' ? 'the page scanner timed out' : 'the page scanner could not be reached' }; }
+}
+export async function grade(input, { onUpdate = () => {}, fresh = false, dkimSelectors = [], api = null } = {}) {
     const parsed = parseInput(input);
     if (parsed.error) return { error: parsed.error };
     const domain = parsed.domain;
@@ -655,16 +668,31 @@ export async function grade(input, { onUpdate = () => {}, fresh = false, dkimSel
     const obsP = runObservatory(domain, { fresh }).catch((e) => ({ error: e.message }));
     const webP = obsP.then((obs) => { report.observatory = obs.detailsUrl ? { url: obs.detailsUrl, grade: obs.scan?.grade, host: obs.host, statusCode: obs.statusCode } : null; push(webChecks(obs)); });
     const rdapP = rdapLookup(org).catch((e) => ({ error: e.message })).then((rd) => { report.rdap = rd; push(domainChecks(rd, org)); });
+    const fpP = api ? fetchFingerprint(api, domain) : Promise.resolve(null);
     const stackP = (async () => {
-        const [obs, mx, txt, ns] = await Promise.all([obsP, mxP, dns(org, 'TXT').catch(() => ({ answers: [] })), dns(org, 'NS').catch(() => ({ answers: [] }))]);
-        const { tech, leaks } = detectStack({ headers: obs?.headers || {}, mxHosts: mx?.hosts || [], txt: txt.answers, ns: ns.answers.map((n) => n.replace(/\.$/, '').toLowerCase()) });
+        const [obs, mx, txt, ns, fp] = await Promise.all([obsP, mxP, dns(org, 'TXT').catch(() => ({ answers: [] })), dns(org, 'NS').catch(() => ({ answers: [] })), fpP]);
+        const base = detectStack({ headers: obs?.headers || {}, mxHosts: mx?.hosts || [], txt: txt.answers, ns: ns.answers.map((n) => n.replace(/\.$/, '').toLowerCase()) });
+        const tech = [...base.tech]; const leaks = [...base.leaks];
+        if (fp?.ok) {
+            for (const t of fp.tech || []) {
+                const cur = tech.find((x) => x.name === t.name);
+                if (cur) { cur.by = [...new Set([...cur.by, ...t.by.map((b) => (b.startsWith('implied') ? b : `page ${b}`))])]; cur.version ||= t.version; }
+                else tech.push({ name: t.name, category: t.category, version: t.version || null, by: t.by.map((b) => (b.startsWith('implied') ? b : `page ${b}`)) });
+            }
+            for (const l of fp.leaks || []) if (!leaks.includes(l) && !/^(Server|X-Powered-By):/.test(l)) leaks.push(l);
+            tech.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+        }
         report.tech = tech;
         const headerOk = obs && !obs.error && obs.headers && Object.keys(obs.headers).length;
+        const srcs = ['DNS records', headerOk ? 'homepage response headers' : null, fp?.ok ? 'homepage HTML (StackGrade API)' : null].filter(Boolean);
+        const fpNote = !api ? ' Page fingerprinting (CMS, analytics and scripts from the homepage HTML) was not run.'
+            : fp?.ok ? ' CMS, analytics and scripts come from the homepage HTML, fetched by the StackGrade API (only tags are read; nothing is stored).'
+                : ` Page fingerprinting not checked: ${fp?.error || 'unknown error'}.`;
         push({ id: 'stack', group: 'signals', title: 'Tech stack', status: 'info', points: null, tech, leaks,
-            source: headerOk ? 'DNS records + homepage response headers' : 'DNS records only',
-            summary: tech.length ? `${plural(tech.length, 'technology')} detected.` : 'No technologies detected from DNS and headers.',
-            details: `Not scored. Full website fingerprinting (CMS, analytics and scripts from the page HTML) is not checked yet because it needs a server; coming soon.${headerOk ? '' : ' Response headers were unavailable for this site, so only DNS was used.'}` });
-        if (leaks.length) push({ id: 'version-leak', group: 'signals', title: 'Software version disclosure', status: 'info', points: null, source: 'Homepage response headers', summary: `Your server reveals software versions: ${leaks.join('; ')}.`, details: 'Not scored. Version numbers help attackers find known vulnerabilities.', fix: 'Remove or blank the X-Powered-By header and hide version numbers in the Server header.' });
+            source: srcs.join(' + '),
+            summary: tech.length ? `${plural(tech.length, 'technology')} detected.` : 'No technologies detected.',
+            details: `Not scored.${fpNote}${headerOk ? '' : ' Response headers were unavailable for this site.'}` });
+        if (leaks.length) push({ id: 'version-leak', group: 'signals', title: 'Software version disclosure', status: 'info', points: null, source: 'Homepage response headers and HTML', summary: `Your site reveals software versions: ${leaks.join('; ')}.`, details: 'Not scored. Version numbers help attackers find known vulnerabilities.', fix: 'Remove or blank the X-Powered-By header, hide version numbers in the Server header, and remove the version from the generator meta tag (most CMSs have a setting or plugin for this).' });
     })().catch(() => {});
     const hiringP = hiringSignal(org).then((jobs) => {
         report.hiring = jobs;

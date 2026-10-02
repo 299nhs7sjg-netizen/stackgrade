@@ -1,1 +1,1 @@
-{ "name": "stackgrade", "private": true, "type": "module", "scripts": { "test": "node --test test/" } }
+{ "name": "stackgrade", "private": true, "type": "module", "scripts": { "test": "node --test test/*.test.js" } }

@@ -1,11 +1,13 @@
 // Generates the static HTML pages, sitemap.xml, robots.txt and llms.txt. Run: node tools/build.mjs
 import fs from 'node:fs';
 import path from 'node:path';
+import { CONFIG } from '../assets/config.js';
+import { plan, PLAN_FEATURES, PAID, ALERTS_NOTE } from '../assets/plans.js';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const P = '/stackgrade/';
-const KIT_URL = 'https://greenlight5868.gumroad.com/l/stackgrade-agency-kit'; // keep in sync with assets/config.js
+const KIT_URL = CONFIG.agencyKit.checkoutUrl;
 const TODAY = new Date().toISOString().slice(0, 10);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -28,7 +30,7 @@ const HOW = `<section id="how" class="how">
     <h3>Honest by design</h3>
     <p>If a check can't run (the registry has no RDAP, the site blocks scanners, a lookup times out), we show <b>Not checked</b> with the reason and leave it out of the score. We never guess. The full rubric is <a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">public</a>.</p>
     <h3>Privacy</h3>
-    <p>There is no StackGrade server. Your browser asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). We store nothing. Page views are counted with <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a> (open source, no cookies, no personal data); only the page path is sent, never the domain you check.</p>
+    <p>The checks run in your browser, which asks public services directly: Google Public DNS / Cloudflare DNS, the domain's registry RDAP server, Mozilla HTTP Observatory (its scan history is public) and public job boards (Greenhouse, Lever, Ashby, Workable). For the tech-stack scan, the StackGrade API fetches the site's public homepage; the result is kept briefly in memory, never stored. Graded domains are not logged. Details in the <a href="${P}privacy/">privacy policy</a>. Page views are counted with <a href="https://www.goatcounter.com/" rel="noopener">GoatCounter</a> (open source, no cookies, no personal data); only the page path is sent, never the domain you check.</p>
   </section>`;
 
 // GoatCounter (cookieless) on the shared greentools site; paths are /stackgrade/... Only the path is sent (no ?d= domain).
@@ -47,7 +49,7 @@ function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], faqLd: 
     const appLd = `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebApplication', name: h1 === 'How healthy is your domain?' ? 'StackGrade' : `StackGrade ${focusTitle || h1}`, url, applicationCategory: 'SecurityApplication', operatingSystem: 'Any', offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }, description: desc })}</script>`;
     const nav = mode === 'widget' ? '' : `<header class="top">
   <a class="brand" href="${P}"><img src="${P}assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
-  <nav><a href="${P}#how">How it works</a><a href="${P}agency-widget/">For agencies</a><a href="${P}faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+  <nav><a href="${P}#how">How it works</a><a href="${P}agency-widget/">For agencies</a><a href="${P}pricing/">Pricing</a><a href="${P}app/">Monitor</a><a href="${P}faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
 </header>`;
     const toolsNav = mode === 'widget' || slug.startsWith('badge') || slug.startsWith('agency') ? '' : `<nav class="tools" aria-label="Checks">${TOOLS.map(([s, n]) => `<a href="${P}${s}"${s === slug ? ' aria-current="page"' : ''}>${n}</a>`).join('')}</nav>`;
     const tool = body || `<section class="hero" id="hero">
@@ -67,8 +69,8 @@ function page({ slug, title, desc, h1, sub, focus, focusTitle, faq = [], faqLd: 
     const footer = mode === 'widget'
         ? `<p class="wfoot">Powered by <a href="${SITE}?ref=widget" target="_blank" rel="noopener">StackGrade</a> · free website &amp; email health grade</p>`
         : `<footer class="foot">
-  <p><a href="${P}">Full grade</a> · <a href="${P}dmarc-checker/">DMARC</a> · <a href="${P}spf-checker/">SPF</a> · <a href="${P}dkim-checker/">DKIM</a> · <a href="${P}email-provider-lookup/">Email provider</a> · <a href="${P}security-headers-checker/">Security headers</a> · <a href="${P}badge/">Badge</a> · <a href="${P}agency-widget/">Agency widget</a> · <a href="${P}agency-kit/">Agency Kit</a> · <a href="${P}faq/">FAQ</a></p>
-  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a></p>
+  <p><a href="${P}">Full grade</a> · <a href="${P}dmarc-checker/">DMARC</a> · <a href="${P}spf-checker/">SPF</a> · <a href="${P}dkim-checker/">DKIM</a> · <a href="${P}email-provider-lookup/">Email provider</a> · <a href="${P}security-headers-checker/">Security headers</a> · <a href="${P}badge/">Badge</a> · <a href="${P}agency-widget/">Agency widget</a> · <a href="${P}agency-kit/">Agency Kit</a> · <a href="${P}pricing/">Pricing</a> · <a href="${P}app/">Monitoring dashboard</a> · <a href="${P}faq/">FAQ</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a> · <a href="${P}terms/">Terms</a> · <a href="${P}privacy/">Privacy</a> · <a href="${P}remove/">Removal requests</a></p>
   <p><a href="https://twelve.tools" target="_blank"><img src="https://twelve.tools/badge0-dark.svg" alt="Featured on Twelve Tools" width="200" height="54"></a></p>
 </footer>`;
     const html = `<!doctype html>
@@ -113,6 +115,16 @@ ${GC(mode)}
     fs.writeFileSync(out, html);
     return { slug, noindex };
 }
+
+// ---- plans (from assets/config.js + assets/plans.js) ----
+function planCard(t, hl = false) {
+    const p = plan(t);
+    const price = t === 'free' ? '<p class="pprice">$0</p>' : t === 'agencykit' ? '<p class="pprice">$29<small> one-time</small></p>' : `<p class="pprice">$${p.monthly}<small>/mo</small></p><p class="d">or $${p.yearly}/yr (2 months free)</p>`;
+    const name = t === 'free' ? 'Free' : p.name;
+    const cta = t === 'free' ? `<a class="btn" href="${P}app/">Start free</a>` : p.checkout ? `<a class="btn btn-acc" href="${esc(p.checkout)}" target="_blank" rel="noopener">Get ${esc(name)}</a>` : '<p class="d">Coming soon</p>';
+    return `<div class="pcard${hl ? ' hl' : ''}"><h3>${esc(name)}</h3>${price}<ul>${PLAN_FEATURES[t].map((f) => `<li>${esc(f)}</li>`).join('')}</ul>${cta}</div>`;
+}
+function planStrip(tiers) { return `<div class="pcards">${tiers.map((t) => planCard(t, t === 'agency')).join('')}</div><p class="d">${esc(ALERTS_NOTE)} <a href="${P}pricing/">Compare all plans</a></p>`; }
 
 export const PAGES = [];
 const add = (o) => PAGES.push({ ...o, ...page(o) });
@@ -230,9 +242,10 @@ add({ slug: 'agency-widget/', og: 'widget', showHow: false,
 <li><code>data-color</code> / <code>?color=</code>: button color as a 6-digit hex value without the #.</li>
 <li><code>data-domain</code> / <code>?d=</code>: optional domain to grade straight away.</li>
 <li><code>data-mode="full"</code> / <code>?mode=full</code>: show the full report inside the widget instead of the compact view.</li></ul>
-<p>The free widget shows "Powered by StackGrade" with a link back. Lead capture (collecting the visitor's email for you) is not available yet.</p>
+<p>The free widget shows "Powered by StackGrade" with a link back. White-label branding and lead capture (a "Want help fixing this?" form whose leads land in your dashboard) need an Agency Kit, Agency or Agency+ license.</p>
 <h2>2. Widget builder</h2>
-<p>Fill in your details to get a ready-made snippet and a live preview. Name and color are free. Logo, call-to-action button, removing "Powered by" and white-label PDF reports are part of the <b>Agency Kit</b> ($29 one-time). <a href="${P}agency-kit/">Setup guide</a>.</p>
+<p>Fill in your details to get a ready-made snippet and a live preview. Name and color are free. Logo, call-to-action button, removing "Powered by" and white-label PDF reports are part of the <b>Agency Kit</b> ($29 one-time) and the <b>Agency</b> plans, which add daily monitoring. <a href="${P}agency-kit/">Setup guide</a>.</p>
+${planStrip(['agencykit', 'agency', 'agencyplus'])}
 <div id="kitpanel"></div>
 <form id="wlform" class="builder" autocomplete="off">
 <label>Agency name <input type="text" name="agency" maxlength="60" placeholder="Acme Web Studio"></label>
@@ -241,6 +254,7 @@ add({ slug: 'agency-widget/', og: 'widget', showHow: false,
 <label>Button text <span class="paid-tag">AGENCY KIT</span><input class="paid" type="text" name="cta" maxlength="40" placeholder="Book a free audit call" disabled></label>
 <label>Button link (https) <span class="paid-tag">AGENCY KIT</span><input class="paid" type="url" name="ctaUrl" placeholder="https://example.com/contact" disabled></label>
 <label class="row"><input class="paid" type="checkbox" name="hidePowered" disabled> Hide "Powered by StackGrade" <span class="paid-tag">AGENCY KIT</span></label>
+<label class="row"><input type="checkbox" name="leads" disabled> Collect leads: show a "Want help fixing this?" form (name + email) after the result; leads appear in your <a href="${P}app/">dashboard</a> <span class="paid-tag">AGENCY KIT / AGENCY</span></label>
 </form>
 <p id="wlwarn" class="kit-msg"></p>
 <p id="wlnote" class="d"></p>
@@ -248,11 +262,11 @@ add({ slug: 'agency-widget/', og: 'widget', showHow: false,
 <p><b>Preview</b></p>
 <iframe id="wlprev" title="Widget preview" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff"></iframe>
 <h3>How the white-label check works (honest version)</h3>
-<p>StackGrade has no server. A white-label snippet carries your Gumroad license key (<code>data-license</code>) and your branding (<code>data-config</code>, with a checksum that catches copy/paste damage, not a real signature). On each page load the widget asks Gumroad's public license API whether the key is valid and not refunded, disputed or cancelled, and only then shows your logo and button and hides "Powered by". If the check fails, the widget falls back to the free version. Because this runs in the visitor's browser, your key is visible in your page source and a determined person could bypass it. It is a fair-use check, not DRM.</p>
+<p>A white-label snippet carries your Gumroad license key (<code>data-license</code>) and your branding (<code>data-config</code>, with a checksum that catches copy/paste damage, not a real signature). On each page load the widget asks Gumroad's public license API whether the key is valid and not refunded, disputed or cancelled, and only then shows your logo and button and hides "Powered by". If the check fails, the widget falls back to the free version. Because this runs in the visitor's browser, your key is visible in your page source and a determined person could bypass it. It is a fair-use check, not DRM.</p>
 <h2>3. Live demo</h2>
 <iframe src="${demoSrc}" title="StackGrade widget demo" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff" loading="lazy"></iframe>
 <h2>Privacy</h2>
-<p>The widget runs entirely in the visitor's browser and stores nothing. It queries public DNS, registry RDAP, Mozilla HTTP Observatory and public job boards, exactly like the main site.</p>
+<p>The widget runs in the visitor's browser and queries public DNS, registry RDAP, Mozilla HTTP Observatory and public job boards, exactly like the main site; the tech-stack scan uses the StackGrade API. If you turn on lead capture, the name and email a visitor submits (with their consent) are stored for you in the StackGrade API until you delete them. See the <a href="${P}privacy/">privacy policy</a>.</p>
 </section>
 <script type="module" src="${P}assets/agency.js"></script>` });
 
@@ -323,6 +337,89 @@ add({ slug: 'agency-kit/', og: 'widget', showHow: false,
 <p><a class="btn btn-acc" href="${KIT_URL}" target="_blank" rel="noopener">Get the Agency Kit, $29</a></p></section>
 <section class="seo faqdoc">${kitMd.html.replace(/^<p>[\s\S]*?<\/p>/, '')}</section>` });
 
+// ---- pricing ----
+add({ slug: 'pricing/', og: 'home', showHow: false,
+    title: 'StackGrade pricing: domain monitoring, white-label widget and agency plans',
+    desc: `Free grader and 1 monitored domain. Pro $${CONFIG.tiers.pro.monthly}/mo (25 domains daily), Agency $${CONFIG.tiers.agency.monthly}/mo (200 domains, white-label, leads), Agency+ $${CONFIG.tiers.agencyplus.monthly}/mo (1,000 domains). Yearly saves 2 months.`,
+    body: `<section class="hero"><h1>Pricing</h1>
+<p class="sub">The grader is free forever. Plans add monitoring: StackGrade re-checks your domains and alerts you when SPF, DMARC, DKIM, MX, security headers, the tech stack, domain expiry or hiring changes.</p>
+<p class="kit-msg" style="color:inherit"><b>${esc(ALERTS_NOTE)}</b></p></section>
+<section class="seo">
+<div class="pcards">${['free', ...PAID].map((t) => planCard(t, t === 'agency')).join('')}</div>
+<h2>One-time option for widgets</h2>
+<div class="pcards" style="max-width:360px">${planCard('agencykit')}</div>
+<h2>How buying works</h2>
+<ul><li>Checkout is handled by <b>Gumroad</b>. Pick monthly or yearly on the Gumroad page. Your <b>license key</b> is in the Gumroad receipt.</li>
+<li>Paste the key in the <a href="${P}app/">monitoring dashboard</a> (all plans) or the <a href="${P}agency-widget/">widget builder</a> (white-label plans).</li>
+<li>Cancel any time in Gumroad. Your plan keeps working until the end of the period you paid for. Refunds follow Gumroad's refund policy; a refunded, charged-back or disputed purchase stops working.</li>
+<li>If one key covers several products, the highest plan applies.</li></ul>
+<h2>Limits, honestly</h2>
+<ul><li>Checks use public sources (DNS-over-HTTPS, Mozilla HTTP Observatory, registry RDAP, public job boards). If a source fails, that part is marked "not checked" and never reported as a change.</li>
+<li>Daily checks run once every 24 hours at a fixed time per domain; Free and Agency Kit monitors run weekly.</li>
+<li>StackGrade runs on free-tier infrastructure. See the <a href="${P}terms/">terms</a> and <a href="${P}faq/#plans-and-monitoring">FAQ</a>.</li></ul>
+</section>` });
+
+// ---- monitoring dashboard ----
+add({ slug: 'app/', og: 'home', showHow: false, noindex: true,
+    title: 'StackGrade monitoring dashboard',
+    desc: 'Monitor domains for SPF, DMARC, DKIM, MX, security header, tech stack, expiry and hiring changes. Alerts in the dashboard and via webhooks.',
+    body: `<section class="hero"><h1>Monitoring dashboard</h1>
+<p class="sub">StackGrade re-checks your domains and lists what changed. ${esc(ALERTS_NOTE)}</p></section>
+<section class="seo dash">
+<div id="signin" hidden>
+<h2>Start monitoring</h2>
+<p><button class="btn btn-acc" type="button" id="freebtn">Start free (1 domain, weekly)</button> <span class="d">No signup. You get a private token stored in this browser.</span></p>
+<form id="licform" class="dashform" autocomplete="off"><label for="lickey">License key (Pro, Agency, Agency+ or Agency Kit)</label><input type="text" id="lickey" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" spellcheck="false" required><button class="btn" type="submit">Use license key</button></form>
+<form id="freeform" class="dashform" autocomplete="off"><label for="freetok">Have a free token from another device?</label><input type="text" id="freetok" placeholder="sgf_…" spellcheck="false" required><button class="btn" type="submit">Use token</button></form>
+<p id="signin-msg" role="status"></p>
+${planStrip(PAID)}
+</div>
+<div id="dash" hidden>
+<div class="kit kit-on" id="plan"></div>
+<p><button class="btn" type="button" id="refresh">Refresh</button> <button class="btn" type="button" id="signout">Sign out of this browser</button></p>
+<h2>Monitored domains</h2>
+<form id="addform" class="dashform" autocomplete="off"><label for="addq" class="sr">Domains</label><input type="text" id="addq" placeholder="example.com (separate several with spaces or commas)" spellcheck="false" required><button class="btn btn-acc" type="submit">Add</button></form>
+<p id="addmsg" role="status"></p>
+<div id="monitors">Loading…</div>
+<h2>Alerts</h2>
+<div id="alerts">Loading…</div>
+<h2>Webhook</h2>
+<p class="d">Send each change to Slack, Discord or any https endpoint as soon as it is detected.</p>
+<form id="hookform" class="dashform" autocomplete="off"><input type="url" id="hookurl" placeholder="https://hooks.slack.com/services/…" required><select id="hookfmt"><option value="slack">Slack</option><option value="discord">Discord</option><option value="json">JSON</option></select><button class="btn" type="submit">Save</button><button class="btn" type="button" id="hooktest">Send test</button><button class="btn" type="button" id="hookdel">Remove</button></form>
+<p id="hookmsg" role="status"></p>
+<div id="leads-sec" hidden><h2>Leads</h2><p class="d">People who asked for help in your white-label widget. <button class="btn" type="button" id="csv">Download CSV</button></p><div id="leads"></div></div>
+<div id="upsell"></div>
+</div>
+<p class="d">Data handling: <a href="${P}privacy/">privacy policy</a> · <a href="${P}terms/">terms</a>.</p>
+</section>
+<script type="module" src="${P}assets/dashboard.js"></script>` });
+
+// ---- terms / privacy / removal ----
+for (const [slug, file, title, desc] of [
+    ['terms/', 'TERMS.md', 'Terms of service | StackGrade', 'Terms for the StackGrade grader, widget, monitoring dashboard and API: acceptable use, plans and refunds via Gumroad, availability and liability.'],
+    ['privacy/', 'PRIVACY.md', 'Privacy policy | StackGrade', 'What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests.'],
+]) {
+    const md = mdToHtml(fs.readFileSync(path.join(ROOT, 'docs', file), 'utf8'));
+    add({ slug, og: 'home', showHow: false, title, desc, body: `<section class="hero"><h1>${esc(md.h1)}</h1></section><section class="seo faqdoc">${md.html}</section>` });
+}
+add({ slug: 'remove/', og: 'home', showHow: false,
+    title: 'Removal and privacy requests | StackGrade',
+    desc: 'Remove your email from StackGrade agency lead lists, or stop StackGrade monitoring of a domain you own.',
+    body: `<section class="hero"><h1>Removal and privacy requests</h1>
+<p class="sub">Remove your email address from agency lead lists, or ask StackGrade to stop monitoring a domain you own.</p></section>
+<section class="seo">
+<form id="rmform" class="builder" autocomplete="off">
+<label class="row"><input type="radio" name="kind" value="email" checked> Remove my email from all lead lists and block it from being stored again</label>
+<label class="row"><input type="radio" name="kind" value="domain"> Stop monitoring of my domain (existing monitors stop, new ones are refused)</label>
+<label>Email address or domain <input type="text" name="value" required maxlength="254" spellcheck="false" autocapitalize="off"></label>
+<label class="hp" aria-hidden="true">Leave empty <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+<p><button class="btn btn-acc" type="submit">Send request</button></p>
+</form>
+<p id="rmmsg" role="status"></p>
+<p class="d">The request is processed automatically. We keep a record of the request (the email address or domain) so it stays blocked. For anything else, <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">open a GitHub issue</a>. See the <a href="${P}privacy/">privacy policy</a>.</p>
+</section>
+<script type="module" src="${P}assets/remove.js"></script>` });
+
 // ---- sitemap / robots / llms ----
 const indexable = PAGES.filter((p) => !p.noindex);
 fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), `<?xml version="1.0" encoding="UTF-8"?>
@@ -333,7 +430,7 @@ ${indexable.map((p) => `  <url><loc>${SITE}${p.slug}</loc><lastmod>${TODAY}</las
 // robots.txt lives at the host root (299nhs7sjg-netizen.github.io repo), which lists this sitemap.
 fs.writeFileSync(path.join(ROOT, 'llms.txt'), `# StackGrade
 
-> StackGrade is a free website and email health grader. Enter a domain and get a 0-100 grade (A-F) in seconds, covering email authentication (SPF, DKIM, DMARC, MX), website security headers (via Mozilla HTTP Observatory) and domain health (expiry and transfer lock from registry RDAP), with plain-English fixes. No signup, no server: checks run in the visitor's browser. Checks that cannot run are shown as "Not checked" and excluded from the score.
+> StackGrade is a free website and email health grader. Enter a domain and get a 0-100 grade (A-F) in seconds, covering email authentication (SPF, DKIM, DMARC, MX), website security headers (via Mozilla HTTP Observatory) and domain health (expiry and transfer lock from registry RDAP), with plain-English fixes. No signup: checks run in the visitor's browser; a small API fetches homepages for the tech-stack scan and runs paid monitoring. Checks that cannot run are shown as "Not checked" and excluded from the score.
 
 Link to a result: ${SITE}?d=example.com
 
@@ -344,10 +441,13 @@ Link to a result: ${SITE}?d=example.com
 - [DKIM checker](${SITE}dkim-checker/): probes about 40 common selectors or a custom selector (?d=example.com&s=selector)
 - [Email provider lookup](${SITE}email-provider-lookup/): mailbox provider from MX, authorized senders from SPF
 - [Security headers checker](${SITE}security-headers-checker/): HTTPS redirect, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, cookies
-- [Agency widget](${SITE}agency-widget/): free embeddable grader with "Powered by StackGrade"; paid Agency Kit ($29 one-time) adds a white-label widget and PDF reports
+- [Agency widget](${SITE}agency-widget/): free embeddable grader with "Powered by StackGrade"; Agency Kit ($29 one-time) or the Agency plans add a white-label widget, PDF reports and lead capture
 - [Badge](${SITE}badge/): "Graded A/B" SVG badge for listed domains
 - [Agency Kit setup guide](${SITE}agency-kit/): buy, activate the Gumroad license key, build the white-label widget, export PDFs
-- [FAQ](${SITE}faq/): grading, each check, fixes, Not checked / Partial grade, badges, widget, Agency Kit licensing, privacy
+- [FAQ](${SITE}faq/): grading, each check, fixes, Not checked / Partial grade, badges, widget, plans, monitoring, Agency Kit licensing, privacy
+- [Pricing](${SITE}pricing/): Free (1 domain weekly), Pro $${CONFIG.tiers.pro.monthly}/mo or $${CONFIG.tiers.pro.yearly}/yr (25 domains daily), Agency $${CONFIG.tiers.agency.monthly}/mo or $${CONFIG.tiers.agency.yearly}/yr (200 domains daily, white-label, lead capture), Agency+ $${CONFIG.tiers.agencyplus.monthly}/mo or $${CONFIG.tiers.agencyplus.yearly}/yr (1,000 domains daily), Agency Kit $29 one-time. ${ALERTS_NOTE}
+- [Monitoring dashboard](${SITE}app/): monitored domains, change alerts, webhooks, leads
+- [Terms](${SITE}terms/), [Privacy](${SITE}privacy/), [Removal requests](${SITE}remove/)
 
 ## Scoring
 - [Scoring rubric and data sources](https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric): email 50 points, website security 35, domain 15; A >= 90, B >= 80, C >= 70, D >= 60, F < 60

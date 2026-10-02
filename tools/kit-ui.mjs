@@ -65,7 +65,8 @@ async function mocked(ctx) {
     // PDF
     await p.goto(`${BASE}?d=${DOMAIN}`); await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; });
     await p.waitForSelector('.rerun', { timeout: 150000 });
-    ok('no upsell when licensed', (await p.$$('.kitbuy-inline, .kitbuy-box')).length === 0);
+    ok('no kit upsell when licensed', (await p.$$('.kitbuy-inline, .kitbuy-box')).length === 0);
+    ok('licensed: Add to my monitors', (await p.textContent('.plan-upsell')).includes('Add to my monitors'));
     await p.click('.wlpdf'); await p.waitForFunction(() => window.__printed === 1, null, { timeout: 8000 });
     ok('print called once', true);
     await p.emulateMedia({ media: 'print' });
@@ -77,6 +78,10 @@ async function mocked(ctx) {
     const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true }); const p = await ctx.newPage();
     await p.goto(`${BASE}?d=${DOMAIN}`); await p.waitForSelector('.rerun', { timeout: 150000 });
     ok('inline upsell near PDF', (await p.textContent('.kitbuy-inline')) === 'Get the Agency Kit, $29');
+    ok('inline Agency upsell', (await p.locator('.kitbuy-inline').nth(1).getAttribute('href')) === 'https://greenlight5868.gumroad.com/l/vmdksq');
+    const pu = await p.textContent('.plan-upsell');
+    ok('plan upsell: free monitor + prices + alerts note', pu.includes('Monitor 1 domain free') && pu.includes('$19/mo or $190/yr') && pu.includes('$49/mo or $490/yr') && pu.includes('$99/mo or $990/yr') && pu.includes('Email alerts coming soon; alerts via in-app feed and webhooks today'), pu);
+    ok('tech card uses API fingerprint', (await p.textContent('#result')).includes('StackGrade API') || (await p.textContent('#result')).includes('Page fingerprinting not checked'));
     ok('next-steps box upsell', (await p.textContent('.kitbuy-box')).includes('Get the Agency Kit, $29'));
     await p.click('.wlpdf'); await p.waitForSelector('.modal .kit');
     ok('PDF modal CTA', (await p.textContent('.modal')).includes('Get the Agency Kit, $29'));

@@ -41,9 +41,13 @@ Embed: `<a href="https://299nhs7sjg-netizen.github.io/stackgrade/?d=github.com">
 ```html
 <script src="https://299nhs7sjg-netizen.github.io/stackgrade/widget.js" data-agency="Your Agency" data-color="0f172a" async></script>
 ```
-This adds an auto-resizing iframe of `/widget/` (options: `data-agency`, `data-color` as 6-digit hex, `data-domain`, `data-mode="full"`). The default is compact: grade, category scores, top 5 problems with fixes, and a "See full report" link. The widget shows "Powered by StackGrade" with a link back. There is no lead capture yet.
+This adds an auto-resizing iframe of `/widget/` (options: `data-agency`, `data-color` as 6-digit hex, `data-domain`, `data-mode="full"`). The default is compact: grade, category scores, top 5 problems with fixes, and a "See full report" link. The widget shows "Powered by StackGrade" with a link back. Licensed agencies can turn on lead capture (see below).
 
-## Agency Kit (paid, no backend)
+## Plans
+
+Free (1 domain, weekly), Pro $19/mo or $190/yr (25 daily), Agency $49/mo or $490/yr (200 daily + white-label + leads), Agency+ $99/mo or $990/yr (1,000 daily), Agency Kit $29 one-time (white-label + leads). Gumroad product IDs and checkout URLs live in `assets/config.js` (public) and as Worker vars in `worker/wrangler.toml`. `assets/tiers.js` holds the shared rules: every product is checked, the highest valid tier wins; refunded / charged-back / disputed purchases, `subscription_ended_at` and `subscription_failed_at` lock immediately; `subscription_cancelled_at` keeps access until the end of the billing period (computed from `created_at` + `recurrence`), or locks immediately if that cannot be determined. Email alerts coming soon; alerts via in-app feed and webhooks today. Pages: `/pricing/`, `/app/` (dashboard), `/terms/`, `/privacy/`, `/remove/`.
+
+## Agency Kit
 
 A $29 one-time Gumroad product: [buy](https://greenlight5868.gumroad.com/l/stackgrade-agency-kit). It unlocks a white-label widget (logo, name, color, CTA button, hide "Powered by") built on `/agency-widget/`, and a white-label PDF export (`window.print()` with a print stylesheet, no StackGrade branding) under every result.
 
@@ -53,9 +57,20 @@ A $29 one-time Gumroad product: [buy](https://greenlight5868.gumroad.com/l/stack
 - **Honest limits:** enforcement is client-side only. The key is visible in the page source of sites that embed it, and anyone editing the page can bypass the check. It stops casual misuse, not a determined one.
 - Tests: `test/license.test.js` (mocked fetch: valid, refunded, chargebacked, disputed, cancelled/ended/failed, one-time, invalid, inert config, daily re-verify, grace, widget cache, config round-trip). UI: `node tools/kit-ui.mjs` (Chrome; real Gumroad for fake-key rejection, Playwright-mocked Gumroad for the unlocked UI).
 
-## How it works (no backend)
+## StackGrade API (Cloudflare Worker, free plan)
 
-Everything runs in the visitor's browser. The browser calls these public, CORS-enabled services directly:
+`worker/` is a Cloudflare Worker at `https://api.stackgrade.workers.dev` (KV storage, 5-minute cron, no paid features). It does what a browser cannot:
+
+- `GET /v1/fingerprint?domain=` fetches the homepage HTML (SSRF-safe: http/https on default ports only, no IP literals, every DNS answer must be public, redirects re-checked per hop, 192 KB cap) and runs the shared signatures. Results are cached in memory, never stored.
+- `POST /v1/license/verify`; `POST /v1/free/token`; `GET/POST /v1/monitors`, `DELETE /v1/monitors/:id`; `GET /v1/alerts`; `PUT/DELETE /v1/webhook`, `POST /v1/webhook/test` (Slack, Discord or JSON); `POST /v1/leads` (honeypot, timing and rate limits) and `GET /v1/leads[?format=csv]`; `POST /v1/removal`; `GET /v1/me`; `GET /v1/health`. Auth is `Authorization: Bearer <Gumroad license key | free token>`.
+- The cron dispatches due monitor checks (one check per sub-invocation via a self service binding, at most 45 per run). Each check snapshots SPF, DMARC, MX, DKIM (6 selectors), Observatory tests, tech, RDAP expiry/lock and hiring, and diffs against the previous snapshot. A failed lookup is "unknown", never a change.
+- Free-plan budgets: about 20 subrequests (of 50) per check; KV writes only when something changes (plus a 6-day heartbeat), because KV allows 1,000 writes/day. CPU per check measured at 8–38 ms (median about 10 ms); the free plan's nominal limit is 10 ms, so heavy pages are a known risk.
+- No email: there is no free, signup-free way to send email to arbitrary addresses from a Worker, so alerts go to the dashboard feed and webhooks.
+- Deploy: `cd worker && npx wrangler deploy` (needs Node 22). Secrets `ADMIN_KEY` and `INTERNAL_KEY` are set with `wrangler secret put`, never committed. Tests: `cd worker && npm test`.
+
+## How the grader works
+
+The grade itself is computed in the visitor's browser. The browser calls these public, CORS-enabled services directly:
 
 | Data | Source |
 |---|---|
@@ -64,7 +79,7 @@ Everything runs in the visitor's browser. The browser calls these public, CORS-e
 | HTTPS redirect, HSTS, CSP, clickjacking, X-Content-Type-Options, Referrer-Policy, cookies; response headers for stack detection | [Mozilla HTTP Observatory](https://developer.mozilla.org/en-US/observatory) public API v2 (`POST /api/v2/scan`, `GET /api/v2/analyze`). Its scan history is public. |
 | Hiring signal | Public job-board APIs: Greenhouse, Lever, Ashby, Workable |
 
-We do not use CORS proxies. There is no StackGrade server and no database. Page views are counted with [GoatCounter](https://www.goatcounter.com/) (open source, cookieless, no personal data) under paths `/stackgrade/...`; only the page path is sent, never the domain being checked. The widget counts as `/stackgrade/widget-embed` when framed.
+We do not use CORS proxies. The only StackGrade server is the API above (homepage fingerprinting, monitoring, leads); graded domains are not logged. Page views are counted with [GoatCounter](https://www.goatcounter.com/) (open source, cookieless, no personal data) under paths `/stackgrade/...`; only the page path is sent, never the domain being checked. The widget counts as `/stackgrade/widget-embed` when framed.
 
 ## Scoring rubric
 
@@ -111,7 +126,7 @@ Pass = 1.0, warn = 0.5, fail = 0. A test that Observatory fails with a score mod
 ### Shown but never scored
 - **Domain age** (from RDAP)
 - **Email provider** (from MX), plus services authorized to send (from SPF includes)
-- **Tech stack**, detected from DNS (MX, NS, TXT verification records) plus homepage response headers and cookies, using StackGrade's own signatures (shared with the Website Tech Stack Detector Actor). Full HTML fingerprinting is **not checked yet** because it needs a server.
+- **Tech stack**, detected from DNS (MX, NS, TXT verification records) plus homepage response headers and cookies, using StackGrade's own signatures (shared with the Website Tech Stack Detector Actor). Homepage HTML fingerprinting comes from the StackGrade API (`/v1/fingerprint`); if it fails, the card says "Page fingerprinting not checked" with the reason.
 - **Software version disclosure** (`Server` / `X-Powered-By` headers that include versions)
 - **Hiring signal**: a Greenhouse/Lever/Ashby/Workable board named after the domain. It counts only when job links point to the domain (confirmed), or when the board name or job text matches the company name (likely).
 

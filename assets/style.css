@@ -170,5 +170,28 @@ body[data-mode=widget] .wfoot{padding:6px 0 8px}
 .faqdoc h3{font-size:18px;margin:18px 0 6px}
 .faqdoc pre.code{display:block;white-space:pre-wrap;padding:10px 12px;font-size:13px}
 .kitbuy-inline{align-self:center;font-size:14px;font-weight:700;color:#2563eb;margin-left:2px}
-.kitbuy-box{margin:14px 0 0;padding:10px 12px;border:1px dashed #94a3b8;border-radius:12px;background:#f8fafc;font-size:15px}
-.kitbuy-box .btn{margin-left:6px}
+.kitbuy-box,.plan-upsell{margin:14px 0 0;padding:10px 12px;border:1px dashed #94a3b8;border-radius:12px;background:#f8fafc;font-size:15px}
+.kitbuy-box .btn,.plan-upsell .btn{margin-left:6px}
+.leadform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.leadform input[name=name],.leadform input[name=email]{flex:1;min-width:160px;font-size:15px;padding:9px 10px;border:1px solid var(--line);border-radius:10px}
+.leadform .hp,.hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.leadform .consent{flex-basis:100%;font-size:14px}
+.leadform .d{flex-basis:100%;font-size:12px;color:var(--mut);margin:2px 0 0}
+.dash h2{margin-top:26px}
+.mon .ch h3 a{color:inherit}
+.alerts{list-style:none;padding:0;margin:0}
+.alerts li{border-bottom:1px solid var(--line);padding:8px 0;font-size:15px}
+.alerts details{margin-top:4px}
+.tablewrap{overflow-x:auto}
+table.leads{border-collapse:collapse;width:100%;font-size:14px}
+table.leads th,table.leads td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.pcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.pcard{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff;display:flex;flex-direction:column}
+.pcard h3{margin:0 0 4px}
+.pcard ul{padding-left:18px;margin:8px 0 12px;font-size:14px;flex:1}
+.pprice{font-size:26px;font-weight:800;margin:0}
+.pprice small{font-size:14px;font-weight:600}
+.pcard.hl{border:2px solid var(--acc,#2563eb)}
+.dashform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.dashform input,.dashform select,.dashform textarea{font-size:15px;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
+.dashform input[type=text],.dashform input[type=url],.dashform textarea{flex:1;min-width:220px}

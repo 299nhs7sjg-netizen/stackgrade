@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StackGrade monitoring dashboard</title>
+<meta name="description" content="Monitor domains for SPF, DMARC, DKIM, MX, security header, tech stack, expiry and hiring changes. Alerts in the dashboard and via webhooks.">
+<meta name="robots" content="noindex">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StackGrade">
+<meta property="og:title" content="StackGrade monitoring dashboard">
+<meta property="og:description" content="Monitor domains for SPF, DMARC, DKIM, MX, security header, tech stack, expiry and hiring changes. Alerts in the dashboard and via webhooks.">
+<meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/app/">
+<meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/home.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0f172a">
+<link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/stackgrade/assets/style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade undefined","url":"https://299nhs7sjg-netizen.github.io/stackgrade/app/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Monitor domains for SPF, DMARC, DKIM, MX, security header, tech stack, expiry and hiring changes. Alerts in the dashboard and via webhooks."}</script>
+
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/stackgrade/"><img src="/stackgrade/assets/favicon.svg" alt="" width="28" height="28"> StackGrade</a>
+  <nav><a href="/stackgrade/#how">How it works</a><a href="/stackgrade/agency-widget/">For agencies</a><a href="/stackgrade/pricing/">Pricing</a><a href="/stackgrade/app/">Monitor</a><a href="/stackgrade/faq/">FAQ</a><a href="https://github.com/299nhs7sjg-netizen/stackgrade#scoring-rubric">Scoring</a></nav>
+</header>
+<main>
+  <section class="hero"><h1>Monitoring dashboard</h1>
+<p class="sub">StackGrade re-checks your domains and lists what changed. Email alerts coming soon; alerts via in-app feed and webhooks today.</p></section>
+<section class="seo dash">
+<div id="signin" hidden>
+<h2>Start monitoring</h2>
+<p><button class="btn btn-acc" type="button" id="freebtn">Start free (1 domain, weekly)</button> <span class="d">No signup. You get a private token stored in this browser.</span></p>
+<form id="licform" class="dashform" autocomplete="off"><label for="lickey">License key (Pro, Agency, Agency+ or Agency Kit)</label><input type="text" id="lickey" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" spellcheck="false" required><button class="btn" type="submit">Use license key</button></form>
+<form id="freeform" class="dashform" autocomplete="off"><label for="freetok">Have a free token from another device?</label><input type="text" id="freetok" placeholder="sgf_…" spellcheck="false" required><button class="btn" type="submit">Use token</button></form>
+<p id="signin-msg" role="status"></p>
+<div class="pcards"><div class="pcard"><h3>Pro</h3><p class="pprice">$19<small>/mo</small></p><p class="d">or $190/yr (2 months free)</p><ul><li>25 domains, checked daily</li><li>Change alerts: SPF, DMARC, DKIM, MX, security headers, tech stack, expiry, hiring</li><li>Dashboard feed + webhooks (Slack, Discord or JSON)</li></ul><a class="btn btn-acc" href="https://greenlight5868.gumroad.com/l/xzxoay" target="_blank" rel="noopener">Get Pro</a></div><div class="pcard hl"><h3>Agency</h3><p class="pprice">$49<small>/mo</small></p><p class="d">or $490/yr (2 months free)</p><ul><li>200 domains, checked daily</li><li>Everything in Pro</li><li>White-label widget (your logo, colors, button; no &quot;Powered by&quot;)</li><li>White-label PDF reports</li><li>Lead capture from your widget (CSV export)</li></ul><a class="btn btn-acc" href="https://greenlight5868.gumroad.com/l/vmdksq" target="_blank" rel="noopener">Get Agency</a></div><div class="pcard"><h3>Agency+</h3><p class="pprice">$99<small>/mo</small></p><p class="d">or $990/yr (2 months free)</p><ul><li>1,000 domains, checked daily</li><li>Everything in Agency</li></ul><a class="btn btn-acc" href="https://greenlight5868.gumroad.com/l/ktoyhl" target="_blank" rel="noopener">Get Agency+</a></div></div><p class="d">Email alerts coming soon; alerts via in-app feed and webhooks today. <a href="/stackgrade/pricing/">Compare all plans</a></p>
+</div>
+<div id="dash" hidden>
+<div class="kit kit-on" id="plan"></div>
+<p><button class="btn" type="button" id="refresh">Refresh</button> <button class="btn" type="button" id="signout">Sign out of this browser</button></p>
+<h2>Monitored domains</h2>
+<form id="addform" class="dashform" autocomplete="off"><label for="addq" class="sr">Domains</label><input type="text" id="addq" placeholder="example.com (separate several with spaces or commas)" spellcheck="false" required><button class="btn btn-acc" type="submit">Add</button></form>
+<p id="addmsg" role="status"></p>
+<div id="monitors">Loading…</div>
+<h2>Alerts</h2>
+<div id="alerts">Loading…</div>
+<h2>Webhook</h2>
+<p class="d">Send each change to Slack, Discord or any https endpoint as soon as it is detected.</p>
+<form id="hookform" class="dashform" autocomplete="off"><input type="url" id="hookurl" placeholder="https://hooks.slack.com/services/…" required><select id="hookfmt"><option value="slack">Slack</option><option value="discord">Discord</option><option value="json">JSON</option></select><button class="btn" type="submit">Save</button><button class="btn" type="button" id="hooktest">Send test</button><button class="btn" type="button" id="hookdel">Remove</button></form>
+<p id="hookmsg" role="status"></p>
+<div id="leads-sec" hidden><h2>Leads</h2><p class="d">People who asked for help in your white-label widget. <button class="btn" type="button" id="csv">Download CSV</button></p><div id="leads"></div></div>
+<div id="upsell"></div>
+</div>
+<p class="d">Data handling: <a href="/stackgrade/privacy/">privacy policy</a> · <a href="/stackgrade/terms/">terms</a>.</p>
+</section>
+<script type="module" src="/stackgrade/assets/dashboard.js"></script>
+  
+  
+  
+</main>
+<footer class="foot">
+  <p><a href="/stackgrade/">Full grade</a> · <a href="/stackgrade/dmarc-checker/">DMARC</a> · <a href="/stackgrade/spf-checker/">SPF</a> · <a href="/stackgrade/dkim-checker/">DKIM</a> · <a href="/stackgrade/email-provider-lookup/">Email provider</a> · <a href="/stackgrade/security-headers-checker/">Security headers</a> · <a href="/stackgrade/badge/">Badge</a> · <a href="/stackgrade/agency-widget/">Agency widget</a> · <a href="/stackgrade/agency-kit/">Agency Kit</a> · <a href="/stackgrade/pricing/">Pricing</a> · <a href="/stackgrade/app/">Monitoring dashboard</a> · <a href="/stackgrade/faq/">FAQ</a></p>
+  <p>StackGrade (beta) · free, no signup · <a href="https://github.com/299nhs7sjg-netizen/stackgrade">Source &amp; rubric</a> · <a href="https://github.com/299nhs7sjg-netizen/stackgrade/issues">Report a wrong result</a> · <a href="/stackgrade/terms/">Terms</a> · <a href="/stackgrade/privacy/">Privacy</a> · <a href="/stackgrade/remove/">Removal requests</a></p>
+  <p><a href="https://twelve.tools" target="_blank"><img src="https://twelve.tools/badge0-dark.svg" alt="Featured on Twelve Tools" width="200" height="54"></a></p>
+</footer>
+
+<script>window.goatcounter={path:function(){return location.pathname}};</script>
+<script data-goatcounter="https://greentools.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
