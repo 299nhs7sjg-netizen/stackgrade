@@ -17,6 +17,7 @@ let runId = 0;
 let current = null;
 
 function ring(scoreVal, letterVal, provisional) {
+    if (COMPACT) return ringSmall(scoreVal, letterVal);
     const r = 56; const c = 2 * Math.PI * r;
     const pct = scoreVal == null ? 0 : scoreVal / 100;
     const col = COLORS[letterVal] || '#94a3b8';
@@ -26,6 +27,10 @@ function ring(scoreVal, letterVal, provisional) {
       <div class="l"><b style="color:${col}">${esc(letterVal || '…')}</b><span>${scoreVal ?? '–'}/100${provisional ? '*' : ''}</span></div></div>`;
 }
 
+function ringSmall(v, l) {
+    const col = COLORS[l] || '#94a3b8'; const r = 40; const c = 2 * Math.PI * r;
+    return `<div class="ring" style="width:100px;height:100px" role="img" aria-label="Grade ${esc(l || 'pending')}, ${v ?? '?'} out of 100"><svg width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="10"/><circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${c * ((v || 0) / 100)} ${c}"/></svg><div class="l"><b style="color:${col};font-size:34px">${esc(l || '…')}</b><span>${v ?? '–'}/100</span></div></div>`;
+}
 function codeBlock(text) {
     return `<div class="code"><code>${esc(text)}</code><button class="btn copy" type="button" data-copy="${esc(text)}">Copy</button></div>`;
 }
@@ -66,7 +71,7 @@ function render(rep, done) {
     const shareText = s.letter ? `${name} scored ${s.letter} (${s.score}/100) on StackGrade's website & email health check` : `Website & email health check for ${name}`;
     let html = `<div class="summary">${ring(s.score, s.letter, provisional)}
       <div><h2 class="sum-h">${esc(name)}${name !== rep.domain ? ` <small class="puny">(${esc(rep.domain)})</small>` : ''}${provisional ? '<span class="prov">Checking…</span>' : ''}</h2>
-      <p class="cov">${s.score == null ? 'Waiting for results…' : `Graded on ${s.coverage} of 100 points.`}${skipped && done ? ` ${skipped} points could not be checked and are left out (see "Not checked" below).` : ''}${provisional && s.score != null ? ' *Provisional until every check finishes.' : ''}</p>
+      <p class="cov">${s.score == null ? 'Waiting for results…' : `Graded on ${s.coverage} of 100 points.`}${skipped && done ? (COMPACT ? ` ${skipped} not checked.` : ` ${skipped} points could not be checked and are left out (see "Not checked" below).`) : ''}${provisional && s.score != null ? ' *Provisional until every check finishes.' : ''}</p>
       ${done && s.coverage < 70 ? `<p class="cov"><span class="prov">Partial grade</span> Only ${s.coverage} of 100 points could be checked, so treat this grade with care.</p>` : ''}
       ${rep.org && rep.org !== rep.domain ? `<p class="cov">You entered a subdomain. Email and website checks are for ${esc(rep.domain)}; registration checks are for ${esc(rep.org)}.</p>` : ''}
       <div class="bars">${bars}</div>
