@@ -140,6 +140,14 @@ Then add your domains. Each domain gets a fixed daily or weekly check time.
 
 You can cancel a membership in Gumroad at any time. Your plan keeps working until the end of the period you already paid for, then monitoring pauses and white-label features lock. If the end of the period cannot be worked out, access locks when the cancellation is recorded. A membership with a failed payment, or one Gumroad marks as ended, locks right away. So does any purchase that is refunded, charged back or disputed. Licenses are re-checked with Gumroad at least once a day.
 
+### My license key is not accepted. What should I check?
+
+- **Use the key for the right product.** Each plan has its own key. A Pro key works in the monitoring dashboard but does not unlock white-label features.
+- **Copy the whole key.** It has four groups of 8 letters and numbers, like `XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX`. Spaces, line breaks and a "License key:" label are removed automatically.
+- **Do not use the order number** or receipt ID; they are different from the license key.
+
+You can find the key in your Gumroad receipt email (under "License key") or in your [Gumroad library](https://app.gumroad.com/library). If it still fails, use **Contact support** under the error message, or reply to your Gumroad receipt email.
+
 ### Can I upgrade?
 
 Yes. Buy the higher plan and paste its license key. If one key is valid for several StackGrade products, the highest plan applies. Monitors are tied to the key you used, so domains added with a free token or another key must be added again under the new key.

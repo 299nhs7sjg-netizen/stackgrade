@@ -2,6 +2,7 @@
 import { CONFIG } from './config.js';
 import { activate, status, deactivate, STORE_KEY } from './license.js';
 import { plan, buyLink, PAID, PLAN_FEATURES, ALERTS_NOTE } from './plans.js';
+import { keyHelpHtml, wireKeyHelp, autoNormalize } from './keyhelp.js';
 
 const API = CONFIG.api;
 const FREE_KEY = 'sg-free-token';
@@ -23,6 +24,12 @@ const when = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle
 function localTime(h, m) { const d = new Date(); d.setUTCHours(h, m, 0, 0); return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }); }
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+function showKeyHelp(reason, key) {
+    const box = $('#signin-msg');
+    box.style.color = ''; box.innerHTML = keyHelpHtml(reason, { page: 'app' });
+    wireKeyHelp(box, { getKey: () => key || $('#lickey').value, reason, page: 'app' });
+}
+autoNormalize($('#lickey'));
 function renderSignIn(error = '') {
     $('#signin').hidden = false; $('#dash').hidden = true;
     msg($('#signin-msg'), error);
@@ -34,7 +41,7 @@ async function start() {
     try {
         me = (await api('/v1/me')).account;
     } catch (e) {
-        if (e.status === 403 && lic) { deactivate(); return renderSignIn(`Your license is no longer active: ${e.message}`); }
+        if (e.status === 403 && lic) { deactivate(); renderSignIn(); return showKeyHelp(`Your license is not active: ${e.message}`, lic); }
         return renderSignIn(`Could not load your account: ${e.message}`);
     }
     const add = new URLSearchParams(location.search).get('add');
@@ -103,7 +110,7 @@ $('#licform').addEventListener('submit', async (e) => {
     e.preventDefault();
     msg($('#signin-msg'), 'Checking your license with Gumroad…', true);
     const r = await activate($('#lickey').value);
-    if (!r.ok) return msg($('#signin-msg'), r.reason);
+    if (!r.ok) { if (r.definitive) showKeyHelp(r.reason); else msg($('#signin-msg'), r.reason); return; }
     start();
 });
 $('#freebtn').addEventListener('click', async () => {

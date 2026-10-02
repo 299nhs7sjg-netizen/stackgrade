@@ -1,7 +1,7 @@
 // StackGrade API: Cloudflare Worker (Workers Free plan) + one KV namespace. No secrets in this file.
-// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
+// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { TIERS, verifyLicense } from '../../assets/tiers.js';
+import { TIERS, verifyLicense, normalizeKey } from '../../assets/tiers.js';
 import { parseInput } from '../../assets/checks.js';
 import { json, err, cors, sha256hex, randomId, hashInt, readJson, HttpError, rateLimit, clientIp, csvCell, EMAIL_RE } from './util.js';
 import { checkUrl, safeFetch } from './ssrf.js';
@@ -43,8 +43,10 @@ const fpCache = new Map();
 const negCache = new Map(); // per-isolate cache of rejected keys (10 min), so junk keys do not hammer Gumroad
 
 // Resolve a license key to an account, verifying with Gumroad at most once per 24 h (cached in the account's KV doc).
+export const licenseAccountId = async (key) => `L${(await sha256hex(`lic:${normalizeKey(key)}`)).slice(0, 32)}`;
 export async function licenseAccount(env, key, { now = Date.now(), fetchImpl } = {}) {
-    const id = `L${(await sha256hex(`lic:${key}`)).slice(0, 32)}`;
+    key = normalizeKey(key);
+    const id = await licenseAccountId(key);
     const neg = negCache.get(id);
     if (neg && now - neg.at < 600000) return { ok: false, status: 403, error: neg.reason };
     let acct = await getJ(env, K.acct(id));
@@ -252,6 +254,79 @@ async function purgeLeadEmail(env, email) {
     return removed;
 }
 
+// ---- support requests ----
+async function postSupport(req, env) {
+    if (!rateLimit(`support:${clientIp(req)}`, 3, 3600000)) throw new HttpError(429, 'Too many messages. Try again in an hour, or contact the seller through Gumroad.');
+    const b = await readJson(req, 8192);
+    if (b.website || (Number.isFinite(+b.elapsedMs) && +b.elapsedMs < 2500)) return { ok: true, message: 'Thanks, we got your message.' }; // bots: pretend success
+    const email = String(b.email || '').trim().toLowerCase().slice(0, 200);
+    const message = String(b.message || '').trim().slice(0, 2000);
+    if (!EMAIL_RE.test(email)) throw new HttpError(400, 'Enter a valid email address so we can reply.');
+    if (message.length < 5) throw new HttpError(400, 'Please describe the problem in a few words.');
+    const last4 = String(b.keyLast4 || '').replace(/[^A-Za-z0-9]/g, '').slice(-4).toUpperCase() || null;
+    const at = new Date().toISOString();
+    const id = `${at.replace(/[-:.TZ]/g, '').slice(0, 14)}-${randomId(4)}`;
+    const rec = { id, at, email, message, keyLast4: last4, page: String(b.page || '').slice(0, 40), reason: String(b.reason || '').slice(0, 300) };
+    await env.KV.put(`support:${id}`, JSON.stringify(rec), { metadata: { at, email: maskEmail(email), page: rec.page }, expirationTtl: 180 * 86400 });
+    return { ok: true, id, message: 'Thanks, we got your message and will reply by email.' };
+}
+export const maskEmail = (e) => { const m = String(e || '').toLowerCase().match(/^(.)[^@]*@(.+)$/); return m ? `${m[1]}***@${m[2]}` : null; };
+async function listRecords(env, prefix, url) {
+    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit') || 50)));
+    const l = await env.KV.list({ prefix, limit: 1000 });
+    const keys = l.keys.sort((a, b) => String(b.metadata?.at || '').localeCompare(String(a.metadata?.at || ''))).slice(0, limit);
+    const items = await Promise.all(keys.map((k) => getJ(env, k.name)));
+    return { ok: true, count: l.keys.length, items: items.filter(Boolean) };
+}
+async function safeEqual(a, b) {
+    const [x, y] = await Promise.all([sha256hex(`cmp:${a}`), sha256hex(`cmp:${b}`)]);
+    let d = 0; for (let i = 0; i < x.length; i++) d |= x.charCodeAt(i) ^ y.charCodeAt(i); return d === 0;
+}
+
+// ---- Gumroad Ping (https://gumroad.com/ping) ----
+// Form-encoded, unsigned, at-least-once, unordered; dedupe on sale_id + resource_name. The ping is only a trigger: the
+// license is re-checked against Gumroad's licenses/verify API, and that result is what gets recorded.
+const BOOL = (v) => (v === undefined || v === null || v === '' ? null : v === true || v === 'true' || v === '1');
+export function parsePing(raw, contentType = '') {
+    let f = {};
+    if (/json/i.test(contentType)) { try { f = JSON.parse(raw) || {}; } catch { f = {}; } } else f = Object.fromEntries(new URLSearchParams(raw));
+    const g = (k) => (f[k] === undefined || f[k] === null ? null : String(f[k]).slice(0, 300));
+    return {
+        resource: g('resource_name') || 'sale',
+        saleId: g('sale_id'), saleTimestamp: g('sale_timestamp'), orderNumber: g('order_number'),
+        sellerId: g('seller_id'), productId: g('product_id'), productPermalink: g('product_permalink'), shortProductId: g('short_product_id'), productName: g('product_name'),
+        email: maskEmail(f.email || f.user_email || f.purchase_email), price: g('price'), currency: g('currency'), recurrence: g('recurrence'),
+        subscriptionId: g('subscription_id'), isRecurringCharge: BOOL(f.is_recurring_charge), test: BOOL(f.test), refunded: BOOL(f.refunded), disputed: BOOL(f.disputed), disputeWon: BOOL(f.dispute_won),
+        cancelled: BOOL(f.cancelled), cancelledAt: g('cancelled_at'), endedAt: g('ended_at'), endedReason: g('ended_reason'), retryCount: g('retry_count'),
+        licenseKey: f.license_key ? normalizeKey(f.license_key) : null,
+    };
+}
+export async function handlePing(env, raw, contentType, { fetchImpl, now = Date.now() } = {}) {
+    const s = parsePing(raw, contentType);
+    const prods = products(env);
+    const tierForProduct = Object.entries(prods).find(([, id]) => id && id === s.productId)?.[0] || null;
+    let verify = null;
+    if (!s.licenseKey) verify = { checked: false, reason: 'no license_key in ping' };
+    else if (!tierForProduct) verify = { checked: false, reason: 'product_id is not a StackGrade product' };
+    else {
+        const r = await verifyLicense(s.licenseKey, { [tierForProduct]: s.productId }, { fetchImpl, now });
+        verify = { checked: true, at: new Date(now).toISOString(), unlocks: !!r.ok, tier: r.ok ? r.tier : null, plan: r.ok ? TIERS[r.tier].name : null,
+            whiteLabel: r.ok ? TIERS[r.tier].whiteLabel : false, result: r.ok ? 'valid' : r.notFound ? 'not found' : r.definitive ? 'inactive' : 'temporary error',
+            reason: r.reason || null, lockAt: r.lockAt ? new Date(r.lockAt).toISOString() : null, test: r.test || false };
+        // Refund / dispute / cancellation pings: make the account re-check Gumroad on its next request or cron check.
+        if (s.resource !== 'sale' || !r.ok) {
+            const id = await licenseAccountId(s.licenseKey); const acct = await getJ(env, K.acct(id));
+            if (acct?.lic) { acct.lic.checkedAt = 0; await putJ(env, K.acct(id), acct); verify.accountRecheck = true; }
+        }
+    }
+    const rid = `${s.saleId || s.subscriptionId || `nosale-${randomId(4)}`}:${s.resource}`.replace(/[^A-Za-z0-9=_:+-]/g, '_').slice(0, 200);
+    const { licenseKey, ...rest } = s;
+    const rec = { id: rid, at: new Date(now).toISOString(), ...rest, keyLast4: licenseKey ? licenseKey.slice(-4) : null, tierForProduct, verify };
+    await env.KV.put(`sale:${rid}`, JSON.stringify(rec), { metadata: { at: rec.at, resource: s.resource, tier: verify?.tier || null, unlocks: verify?.unlocks ?? null } });
+    console.log(JSON.stringify({ ping: s.resource, product: tierForProduct, verify: verify.result || verify.reason, test: s.test }));
+    return rec;
+}
+
 // ---- router ----
 async function route(req, env, ctx) {
     const url = new URL(req.url);
@@ -268,6 +343,15 @@ async function route(req, env, ctx) {
         if (!env.ADMIN_KEY || bearer(req) !== env.ADMIN_KEY) return err(req, 404, 'Not found.');
         return json(req, await admin(p.slice(10), req, env));
     }
+    const pm = p.match(/^\/v1\/gumroad\/ping\/([A-Za-z0-9_-]{16,128})$/);
+    if (pm) {
+        if (M !== 'POST' || !env.PING_SECRET || !(await safeEqual(pm[1], env.PING_SECRET))) return err(req, 404, 'Not found.');
+        const raw = await req.text().catch(() => '');
+        // Gumroad gives the endpoint 5 seconds and retries only on 499/5xx: acknowledge now, work in the background.
+        ctx.waitUntil(handlePing(env, raw, req.headers.get('content-type') || '').catch((e) => console.log(JSON.stringify({ ping_error: String(e?.message || e) }))));
+        return new Response('ok', { status: 200, headers: { 'content-type': 'text/plain' } });
+    }
+    if (p === '/v1/support' && M === 'POST') return json(req, await postSupport(req, env));
     if (p === '/v1/license/verify' && M === 'POST') {
         if (!rateLimit(`lic:${clientIp(req)}`, 30, 60000)) return err(req, 429, 'Too many license checks. Wait a minute.');
         const b = await readJson(req, 2048);
@@ -388,6 +472,19 @@ async function admin(cmd, req, env) {
         await putJ(env, K.acct(acct.id), acct);
         await addToSlots(env, [{ m: mon.id, a: acct.id, d: mon.d, f: mon.f, h: mon.h, s: mon.s, w: mon.w }]);
         return { ok: true, monitor: pubMonitor(mon) };
+    }
+    if (cmd === 'sales' && req.method === 'GET') return listRecords(env, 'sale:', new URL(req.url));
+    if (cmd === 'support' && req.method === 'GET') return listRecords(env, 'support:', new URL(req.url));
+    const del = cmd.match(/^(sales|support)\/(.+)$/);
+    if (del && req.method === 'DELETE') {
+        const k = `${del[1] === 'sales' ? 'sale' : 'support'}:${decodeURIComponent(del[2])}`;
+        await env.KV.delete(k); return { ok: true, deleted: k };
+    }
+    if (cmd === 'delete-account' && req.method === 'POST') { // removes an account doc plus its monitors' schedule and snapshots
+        const acct = await getJ(env, K.acct(b.id)); if (!acct) throw new HttpError(404, 'no account');
+        for (const m of acct.monitors || []) { await removeFromSlot(env, m); await env.KV.delete(K.snap(m.id)); }
+        await env.KV.delete(K.acct(acct.id));
+        return { ok: true, deleted: acct.id, monitors: (acct.monitors || []).length };
     }
     if (cmd === 'removals') { const l = await env.KV.list({ prefix: 'rm:', limit: 100 }); return { ok: true, keys: l.keys.map((k) => k.name) }; }
     if (cmd === 'slots') { const l = await env.KV.list({ prefix: 'due:', limit: 1000 }); return { ok: true, count: l.keys.length, keys: l.keys.map((k) => `${k.name} ${k.metadata?.d}`) }; }

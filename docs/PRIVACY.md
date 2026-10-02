@@ -33,6 +33,12 @@ Agencies on plans with lead capture can show a "Want help fixing this?" form in 
 
 Payments, receipts, refunds and license keys are handled by **Gumroad**. StackGrade never sees your card details. Gumroad's privacy policy applies to your purchase.
 
+When you buy, Gumroad notifies the StackGrade API of the sale. We keep a short record to confirm that your license works: a masked email (first letter and domain only), the product, price, plan, sale ID, the last 4 characters of the license key and the result of the license check.
+
+## Support requests
+
+If you use the **Contact support** form, we store your email, your message, the page you were on and, if you allow it, the last 4 characters of the key you pasted (never the full key). Support requests are deleted automatically after 180 days.
+
 ## Analytics
 
 Page views are counted with **GoatCounter**, which is open source and uses no cookies or personal data. Only the page path is sent, never the domain you check.

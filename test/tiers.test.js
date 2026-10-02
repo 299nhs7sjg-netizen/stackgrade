@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluatePurchase, paidThrough, verifyLicense, TIERS } from '../assets/tiers.js';
+import { evaluatePurchase, verifyLicense, TIERS } from '../assets/tiers.js';
 import { status, activate, verifyForWidget, _clearWidgetCache, DAY_MS } from '../assets/license.js';
 
 const json = (status, body) => ({ status, json: async () => body });
@@ -13,21 +13,16 @@ function gum(map) {
 }
 const day = (s) => Date.parse(s);
 
-test('paidThrough: monthly and yearly anchored on purchase date, month-end safe', () => {
-    assert.equal(paidThrough({ recurrence: 'monthly', created_at: '2026-01-31T10:00:00Z', subscription_cancelled_at: '2026-03-05T00:00:00Z' }), day('2026-03-31T10:00:00Z'));
-    assert.equal(paidThrough({ recurrence: 'monthly', created_at: '2026-01-31T10:00:00Z', subscription_cancelled_at: '2026-02-10T00:00:00Z' }), day('2026-02-28T10:00:00Z'));
-    assert.equal(paidThrough({ recurrence: 'yearly', created_at: '2025-06-01T00:00:00Z', subscription_cancelled_at: '2026-07-01T00:00:00Z' }), day('2027-06-01T00:00:00Z'));
-    assert.equal(paidThrough({ recurrence: null, created_at: '2025-06-01', subscription_cancelled_at: '2026-07-01' }), null);
-});
-test('cancelled membership stays active until the paid period ends, then locks', () => {
-    const p = { recurrence: 'monthly', created_at: '2026-09-15T00:00:00Z', subscription_cancelled_at: '2026-10-01T00:00:00Z' };
+test('cancelled membership: Gumroad sets subscription_cancelled_at to the end of the paid period; access until then', () => {
+    const p = { recurrence: 'monthly', created_at: '2026-09-15T00:00:00Z', subscription_cancelled_at: '2026-10-15T00:00:00Z' };
     const a = evaluatePurchase(p, day('2026-10-10T00:00:00Z'));
     assert.equal(a.ok, true); assert.equal(a.lockAt, day('2026-10-15T00:00:00Z'));
     const b = evaluatePurchase(p, day('2026-10-15T00:00:01Z'));
     assert.equal(b.ok, false); assert.equal(b.definitive, true);
 });
-test('cancelled with undeterminable period locks immediately; ended/failed lock immediately', () => {
-    assert.equal(evaluatePurchase({ subscription_cancelled_at: '2026-10-01' }).ok, false);
+test('cancelled with an unreadable date locks immediately; ended/failed lock immediately', () => {
+    assert.equal(evaluatePurchase({ subscription_cancelled_at: 'garbage' }).ok, false);
+    assert.equal(evaluatePurchase({ subscription_cancelled_at: '2020-10-01T00:00:00Z' }).ok, false);
     assert.equal(evaluatePurchase({ recurrence: 'monthly', created_at: '2026-09-30', subscription_ended_at: '2026-10-01' }).ok, false);
     assert.equal(evaluatePurchase({ recurrence: 'monthly', created_at: '2026-09-30', subscription_failed_at: '2026-10-01' }).ok, false);
     for (const f of ['refunded', 'chargebacked', 'disputed']) assert.equal(evaluatePurchase({ [f]: true }).ok, false);
@@ -67,7 +62,7 @@ test('browser status: Pro is licensed but not white-label; Agency is white-label
 });
 test('browser status: cancelled membership re-checks at period end and locks', async () => {
     const store = mem(); const t0 = day('2026-10-01T00:00:00Z');
-    const p = { recurrence: 'monthly', created_at: '2026-09-20T00:00:00Z', subscription_cancelled_at: '2026-09-30T00:00:00Z' };
+    const p = { recurrence: 'monthly', created_at: '2026-09-20T00:00:00Z', subscription_cancelled_at: '2026-10-20T00:00:00Z' };
     const f = gum({ AG: p });
     assert.equal((await activate('KEY12345-ABC', { cfg, fetchImpl: f, store, now: t0 })).ok, true);
     assert.equal((await status({ cfg, fetchImpl: f, store, now: day('2026-10-19T00:00:00Z') })).unlocked, true);

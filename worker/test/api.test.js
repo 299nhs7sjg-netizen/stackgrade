@@ -36,7 +36,7 @@ test('license cache expires after 24h and a cancelled membership past its period
     globalThis.fetch = async (u, init) => gumroad({ 'PRO|KEY-PRO-123': purchase })(u, init);
     try {
         assert.equal((await licenseAccount(env, 'KEY-PRO-123', { now: t0 })).ok, true);
-        purchase = { ...purchase, subscription_cancelled_at: '2026-09-15T00:00:00Z' }; // paid through 2026-10-01
+        purchase = { ...purchase, subscription_cancelled_at: '2026-10-01T00:00:00Z' }; // Gumroad: cancelled_at = end of paid period
         const r = await licenseAccount(env, 'KEY-PRO-123', { now: t0 + 86400000 + 5 });
         assert.equal(r.ok, false); assert.match(r.error, /cancelled/);
     } finally { globalThis.fetch = real; }
@@ -138,4 +138,58 @@ test('netPrefix groups rotating IPs by network', async () => {
     assert.equal(netPrefix('140.248.52.116'), '140.248.52.0/24');
     assert.equal(netPrefix('140.248.52.41'), netPrefix('140.248.52.100'));
     assert.equal(netPrefix('2001:db8:abcd:12::1'), '2001:db8:abcd::/48');
+});
+
+test('Gumroad ping: secret path, 200 at once, verify recorded with masked email, dedupe key, refund triggers re-check', async () => {
+    const env = { ...envBase(), PING_SECRET: 'sEcReT_sEcReT_1234567890' }; const real = globalThis.fetch;
+    globalThis.fetch = gumroad({ 'AG|85DB562A-C11D4B06-A2335A6B-8C079166': {} });
+    try {
+        const form = (o) => new URLSearchParams(o).toString();
+        const mk = (path, body) => new Request(`https://api.stackgrade.workers.dev${path}`, { method: 'POST', body, headers: { 'content-type': 'application/x-www-form-urlencoded' } });
+        assert.equal((await call(env, mk('/v1/gumroad/ping/wrong_secret_wrong_secret', 'x=1'))).status, 404);
+        const base = { seller_id: 'S', product_id: 'AG', product_permalink: 'https://greenlight5868.gumroad.com/l/vmdksq', email: 'buyer.name@example.com', price: '4900', recurrence: 'monthly', sale_id: 'SALE1==', license_key: '85db562a-c11d4b06-a2335a6b-8c079166', test: 'true', refunded: 'false' };
+        const c = ctx();
+        const r = await call(env, mk('/v1/gumroad/ping/sEcReT_sEcReT_1234567890', form(base)), c);
+        assert.equal(r.status, 200); assert.equal(r.body, 'ok');
+        await c.done();
+        const rec = JSON.parse(env.KV.m.get('sale:SALE1==:sale'));
+        assert.equal(rec.email, 'b***@example.com'); assert.equal(rec.keyLast4, '9166'); assert.equal(rec.test, true);
+        assert.equal(rec.verify.unlocks, true); assert.equal(rec.verify.tier, 'agency'); assert.equal(rec.verify.result, 'valid');
+        assert.ok(!JSON.stringify(rec).includes('buyer.name') && !JSON.stringify(rec).includes('A2335A6B'), 'no full email or key stored');
+        // an account using that key gets a forced re-check when a refund ping arrives
+        await licenseAccount(env, '85DB562A-C11D4B06-A2335A6B-8C079166');
+        const c2 = ctx();
+        await call(env, mk('/v1/gumroad/ping/sEcReT_sEcReT_1234567890', form({ ...base, resource_name: 'refund', refunded: 'true' })), c2); await c2.done();
+        const acctKey = [...env.KV.m.keys()].find((k) => k.startsWith('acct:L'));
+        assert.equal(JSON.parse(env.KV.m.get(acctKey)).lic.checkedAt, 0);
+        assert.ok(env.KV.m.has('sale:SALE1==:refund'));
+        // fake key -> not found; unknown product -> not checked
+        const c3 = ctx();
+        await call(env, mk('/v1/gumroad/ping/sEcReT_sEcReT_1234567890', form({ ...base, sale_id: 'SALE2==', license_key: 'FAKE0000-FAKE0000-FAKE0000-FAKE0000' })), c3);
+        await call(env, mk('/v1/gumroad/ping/sEcReT_sEcReT_1234567890', form({ ...base, sale_id: 'SALE3==', product_id: 'OTHER' })), c3); await c3.done();
+        assert.equal(JSON.parse(env.KV.m.get('sale:SALE2==:sale')).verify.result, 'not found');
+        assert.equal(JSON.parse(env.KV.m.get('sale:SALE3==:sale')).verify.checked, false);
+        const list = await call(env, req('GET', '/v1/admin/sales', { token: 'ak' }));
+        assert.equal(list.body.count, 4);
+        const del = await call(env, req('DELETE', '/v1/admin/sales/SALE2%3D%3D%3Asale', { token: 'ak' }));
+        assert.equal(del.body.deleted, 'sale:SALE2==:sale'); assert.equal(env.KV.m.has('sale:SALE2==:sale'), false);
+    } finally { globalThis.fetch = real; }
+});
+
+test('support: validation, honeypot, only last 4 of a key, rate limit, admin list', async () => {
+    const env = envBase();
+    const post = (body, ip = '9.9.9.1') => call(env, req('POST', '/v1/support', { body, ip }));
+    assert.equal((await post({ email: 'nope', message: 'help me', elapsedMs: 9000 })).status, 400);
+    const hp = await post({ email: 'a@example.com', message: 'spam spam', website: 'x', elapsedMs: 9000 }, '9.9.9.2');
+    assert.equal(hp.status, 200); assert.equal([...env.KV.m.keys()].filter((k) => k.startsWith('support:')).length, 0);
+    const ok = await post({ email: 'Buyer@Example.com', message: 'My key does not work', keyLast4: '85DB562A-C11D4B06-A2335A6B-8C079166', page: 'app', elapsedMs: 9000 }, '9.9.9.3');
+    assert.equal(ok.status, 200);
+    const rec = JSON.parse(env.KV.m.get(`support:${ok.body.id}`));
+    assert.equal(rec.keyLast4, '9166'); assert.equal(rec.email, 'buyer@example.com');
+    for (let i = 0; i < 2; i++) await post({ email: 'b@example.com', message: 'again please', elapsedMs: 9000 }, '9.9.9.4');
+    assert.equal((await post({ email: 'b@example.com', message: 'again please', elapsedMs: 9000 }, '9.9.9.4')).status, 200);
+    assert.equal((await post({ email: 'b@example.com', message: 'again please', elapsedMs: 9000 }, '9.9.9.4')).status, 429);
+    const list = await call(env, req('GET', '/v1/admin/support', { token: 'ak' }));
+    assert.equal(list.body.items.length, 4);
+    assert.equal((await call(env, req('GET', '/v1/admin/support'))).status, 404);
 });

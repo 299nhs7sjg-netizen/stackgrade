@@ -371,7 +371,7 @@ add({ slug: 'app/', og: 'home', showHow: false, noindex: true,
 <p><button class="btn btn-acc" type="button" id="freebtn">Start free (1 domain, weekly)</button> <span class="d">No signup. You get a private token stored in this browser.</span></p>
 <form id="licform" class="dashform" autocomplete="off"><label for="lickey">License key (Pro, Agency, Agency+ or Agency Kit)</label><input type="text" id="lickey" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" spellcheck="false" required><button class="btn" type="submit">Use license key</button></form>
 <form id="freeform" class="dashform" autocomplete="off"><label for="freetok">Have a free token from another device?</label><input type="text" id="freetok" placeholder="sgf_…" spellcheck="false" required><button class="btn" type="submit">Use token</button></form>
-<p id="signin-msg" role="status"></p>
+<div id="signin-msg" role="status"></div>
 ${planStrip(PAID)}
 </div>
 <div id="dash" hidden>

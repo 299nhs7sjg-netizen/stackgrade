@@ -146,5 +146,44 @@ for (const s of ['terms/', 'privacy/', 'remove/', 'faq/', 'app/']) {
     ok('removal request (live API)', (await p.textContent('#rmmsg')).startsWith('Done'), await p.textContent('#rmmsg'));
     await ctx.close();
 }
+// 9. Not-found help + support form + key normalisation on /app/, /agency-widget/ and the PDF modal (Gumroad + support mocked)
+{
+    const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+    const seen = [];
+    await ctx.route('https://api.gumroad.com/**', (r) => { seen.push(new URLSearchParams(r.request().postData() || '').get('license_key')); r.fulfill({ status: 404, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ success: false, message: 'That license does not exist for the provided product.' }) }); });
+    const support = [];
+    await ctx.route(`${API}/v1/support`, (r) => { support.push(JSON.parse(r.request().postData())); r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ ok: true, message: 'Thanks, we got your message and will reply by email.' }) }); });
+    const p = await ctx.newPage(); p.on('pageerror', (e) => console.log('pageerror', e.message)); p.on('console', (m) => { if (m.type() === 'error') console.log('console', m.text()); });
+    const pasted = '  license key: 85db562a–c11d4b06-a2335a6b-8c07916x \n';
+    for (const [where, url, input, submit, box] of [
+        ['app', `${BASE}app/`, '#lickey', '#licform button', '#signin-msg'],
+        ['agency-widget', `${BASE}agency-widget/`, '.kit-key', '.kit-form button', '#kitpanel'],
+    ]) {
+        await p.goto(url); await p.waitForSelector(input, { state: 'visible' });
+        await p.fill(input, pasted); await p.click(submit);
+        await p.waitForSelector(`${box} .keyhelp`, { timeout: 15000 }).catch(async () => console.log('DEBUG', where, await p.innerHTML(box)));
+        const t = await p.textContent(`${box} .keyhelp`);
+        ok(`${where}: not-found help with causes + where to find key`, t.includes('Common causes') && t.includes('Order number') && t.includes('Gumroad library') && t.includes('receipt'), t.slice(0, 120));
+        ok(`${where}: seller Gumroad page link`, (await p.getAttribute(`${box} .keyhelp a[href^="https://greenlight5868.gumroad.com"]`, 'href')) === 'https://greenlight5868.gumroad.com/');
+        ok(`${where}: pasted key normalised before Gumroad`, seen.length > 0 && seen.every((k) => k === '85db562a-c11d4b06-a2335a6b-8c07916x'), seen.slice(-1)[0]);
+        seen.length = 0;
+        await p.click(`${box} .kh-open`);
+        await p.fill(`${box} .kh-form input[name=email]`, 'buyer@example.com'); await p.fill(`${box} .kh-form textarea`, 'My key is not accepted');
+        await p.waitForTimeout(2600);
+        await p.click(`${box} .kh-form button[type=submit]`);
+        await p.waitForFunction((sel) => document.querySelector(sel).textContent.includes('Thanks'), `${box} .keyhelp`, { timeout: 10000 });
+        const sp = support.pop();
+        ok(`${where}: support form posts email + last 4 only`, sp.email === 'buyer@example.com' && sp.keyLast4.length === 4 && !JSON.stringify(sp).includes('C11D4B06') && sp.page === where, JSON.stringify(sp));
+    }
+    // PDF modal on a report page
+    await p.goto(`${BASE}?d=example.com`); await p.waitForSelector('.wlpdf', { timeout: 150000 });
+    await p.click('.wlpdf'); await p.waitForSelector('.modal .kit-key');
+    await p.fill('.modal .kit-key', '524459935'); await p.click('.modal .kit-form button');
+    await p.waitForSelector('.modal .keyhelp', { timeout: 10000 });
+    const mt = await p.textContent('.modal .keyhelp');
+    ok('pdf modal: order number recognised + help + support', mt.includes('order number') && mt.includes('Contact support') && seen.length === 0, mt.slice(0, 140));
+    await p.screenshot({ path: `${SHOTS}/pdf-modal-keyhelp.png` });
+    await ctx.close();
+}
 await b.close();
 console.log(out.join('\n'));

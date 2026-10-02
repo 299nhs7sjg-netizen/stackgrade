@@ -1,6 +1,7 @@
 // Agency Kit UI helpers shared by the result page and the agency-widget page.
 import { status, activate, deactivate, isConfigured, checkoutUrl } from './license.js';
 import { buyLink, plan } from './plans.js';
+import { keyHelpHtml, wireKeyHelp, autoNormalize } from './keyhelp.js';
 
 export const BRAND_KEY = 'sg-agency-brand';
 export const BUY_LABEL = 'Get the Agency Kit, $29';
@@ -35,16 +36,19 @@ export async function renderKitPanel(el, { onUnlock = () => {}, onLock = () => {
       ${buy ? `<p><a class="btn btn-acc" href="${esc(buy)}" target="_blank" rel="noopener">${BUY_LABEL}</a> ${buyLink('agency', `Agency plan, ${plan('agency').price}`, 'btn')} <span class="d">The Agency Kit is a one-time purchase; Agency adds monitoring of 200 domains. Your license key arrives in the Gumroad receipt. <a href="/stackgrade/pricing/">Compare plans</a></span></p>` : '<p class="kit-soon"><b>Coming soon.</b> Agency Kit is not on sale yet.</p>'}
       <form class="kit-form" autocomplete="off"><label>License key (Agency Kit, Agency or Agency+) <input type="text" class="kit-key" placeholder="${configured ? 'XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX' : 'Available when Agency Kit launches'}" ${configured ? '' : 'disabled'} spellcheck="false"></label>
       <button class="btn" type="submit" ${configured ? '' : 'disabled'}>Activate</button></form>
-      <p class="kit-msg" role="status">${st.reason && configured ? esc(st.reason) : ''}</p>
+      <div class="kit-msgbox" role="status">${st.reason && configured ? `<p class="kit-msg">${esc(st.reason)}</p>` : ''}</div>
     </div>`;
     const form = el.querySelector('.kit-form');
+    autoNormalize(el.querySelector('.kit-key'));
     form.onsubmit = async (e) => {
         e.preventDefault();
-        const msg = el.querySelector('.kit-msg');
-        msg.textContent = 'Checking your license with Gumroad…';
-        const r = await activate(el.querySelector('.kit-key').value);
-        if (r.ok) { kitStatus(true); await renderKitPanel(el, { onUnlock, onLock }); onUnlock(); }
-        else msg.textContent = r.reason;
+        const box = el.querySelector('.kit-msgbox'); const input = el.querySelector('.kit-key');
+        box.innerHTML = '<p class="kit-msg">Checking your license with Gumroad…</p>';
+        const r = await activate(input.value);
+        if (r.ok) { kitStatus(true); await renderKitPanel(el, { onUnlock, onLock }); onUnlock(); return; }
+        if (!r.definitive) { box.innerHTML = `<p class="kit-msg">${esc(r.reason)}</p>`; return; }
+        box.innerHTML = keyHelpHtml(r.reason, { page: el.closest('.modal') ? 'pdf' : 'agency-widget' });
+        wireKeyHelp(box, { getKey: () => input.value, reason: r.reason, page: el.closest('.modal') ? 'pdf' : 'agency-widget' });
     };
     return st;
 }

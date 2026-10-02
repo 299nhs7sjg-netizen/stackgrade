@@ -5,7 +5,8 @@
 // license key placed in a public embed snippet can be copied by anyone. This is a
 // convenience lock for honest customers, not DRM. There is no "I paid" / honor path.
 import { CONFIG } from './config.js';
-import { TIERS, VERIFY_URL, verifyLicense } from './tiers.js';
+import { TIERS, VERIFY_URL, verifyLicense, normalizeKey } from './tiers.js';
+export { normalizeKey };
 
 export { VERIFY_URL, TIERS };
 export const STORE_KEY = 'sg-agency-kit'; // kept for compatibility; now stores any StackGrade license (with its tier)
@@ -40,7 +41,7 @@ const feat = (tier) => ({ tier, plan: TIERS[tier]?.name || tier, whiteLabel: !!T
 // Activate a new key (always hits Gumroad).
 export async function activate(key, { cfg = CONFIG, fetchImpl, store = defaultStore(), now = Date.now() } = {}) {
     const r = await verifyKey(key, { cfg, fetchImpl, now });
-    if (r.ok) store.setItem(STORE_KEY, JSON.stringify({ key: String(key).trim(), tier: r.tier, products: pkey(cfg), verifiedAt: now, lastOkAt: now, lockAt: r.lockAt || null }));
+    if (r.ok) store.setItem(STORE_KEY, JSON.stringify({ key: r.key || normalizeKey(key), tier: r.tier, products: pkey(cfg), verifiedAt: now, lastOkAt: now, lockAt: r.lockAt || null }));
     return r.ok ? { ...r, ...feat(r.tier) } : r;
 }
 
@@ -71,7 +72,7 @@ export async function status({ cfg = CONFIG, fetchImpl, store = defaultStore(), 
 // Widget: verify a license passed in an embed snippet, once per page load (in-memory cache).
 const pageCache = new Map();
 export function verifyForWidget(key, opts = {}) {
-    const k = String(key || '').trim();
+    const k = normalizeKey(key);
     if (!pageCache.has(k)) {
         pageCache.set(k, verifyKey(k, opts).then((r) => (r.ok && !TIERS[r.tier]?.whiteLabel ? { ok: false, definitive: true, reason: `The ${TIERS[r.tier]?.name} plan does not include the white-label widget.` } : r.ok ? { ...r, leadsOk: !!TIERS[r.tier]?.leads } : r))
             .catch(() => ({ ok: false, definitive: false })));
