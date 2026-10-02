@@ -22,6 +22,8 @@ PRODUCT_AGENCY_KIT = "nexe9SLeFPs0uJlyO6EYkw=="
 PRODUCT_PRO = "yQKekf6hTcpoK_7Xp83jPg=="
 PRODUCT_AGENCY = "SDoHJkCBWhp7MOLhe3RhXQ=="
 PRODUCT_AGENCY_PLUS = "O0PyQiJuzM8-c9NCThQKzQ=="
+# Not a StackGrade plan (never unlocks anything here); only used to label Ciphire Pro sales in the admin sales log.
+PRODUCT_CIPHIRE_PRO = "rlbL5LDgB6P7GJLCuC65NQ=="
 
 [observability]
 enabled = true

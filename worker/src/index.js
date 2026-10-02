@@ -321,9 +321,12 @@ export async function handlePing(env, raw, contentType, { fetchImpl, now = Date.
     }
     const rid = `${s.saleId || s.subscriptionId || `nosale-${randomId(4)}`}:${s.resource}`.replace(/[^A-Za-z0-9=_:+-]/g, '_').slice(0, 200);
     const { licenseKey, ...rest } = s;
-    const rec = { id: rid, at: new Date(now).toISOString(), ...rest, keyLast4: licenseKey ? licenseKey.slice(-4) : null, tierForProduct, verify };
-    await env.KV.put(`sale:${rid}`, JSON.stringify(rec), { metadata: { at: rec.at, resource: s.resource, tier: verify?.tier || null, unlocks: verify?.unlocks ?? null } });
-    console.log(JSON.stringify({ ping: s.resource, product: tierForProduct, verify: verify.result || verify.reason, test: s.test }));
+    // The Gumroad Ping fires for EVERY product in the store, so every sale is logged here. `brand` says which site it is for
+    // (StackGrade licenses are verified above; Ciphire Pro keys are verified by Ciphire's own Pages Function).
+    const brand = tierForProduct ? 'StackGrade' : (s.productId && s.productId === env.PRODUCT_CIPHIRE_PRO) || /^ciphire/i.test(s.productName || '') ? 'Ciphire' : 'other';
+    const rec = { id: rid, at: new Date(now).toISOString(), brand, ...rest, keyLast4: licenseKey ? licenseKey.slice(-4) : null, tierForProduct, verify };
+    await env.KV.put(`sale:${rid}`, JSON.stringify(rec), { metadata: { at: rec.at, resource: s.resource, brand, tier: verify?.tier || null, unlocks: verify?.unlocks ?? null } });
+    console.log(JSON.stringify({ ping: s.resource, brand, product: tierForProduct, verify: verify.result || verify.reason, test: s.test }));
     return rec;
 }
 

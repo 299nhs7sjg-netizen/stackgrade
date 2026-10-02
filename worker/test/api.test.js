@@ -193,3 +193,14 @@ test('support: validation, honeypot, only last 4 of a key, rate limit, admin lis
     assert.equal(list.body.items.length, 4);
     assert.equal((await call(env, req('GET', '/v1/admin/support'))).status, 404);
 });
+
+test('Gumroad ping logs non-StackGrade products (Ciphire Pro) with a brand label and no unlock', async () => {
+    const { handlePing } = await import('../src/index.js');
+    const store = new Map();
+    const KV = { get: async (k, t) => { const v = store.get(k); return v == null ? null : t === 'json' ? JSON.parse(v) : v; }, put: async (k, v) => store.set(k, v), list: async () => ({ keys: [] }), delete: async (k) => store.delete(k) };
+    const env = { KV, PRODUCT_PRO: 'yQKekf6hTcpoK_7Xp83jPg==', PRODUCT_CIPHIRE_PRO: 'rlbL5LDgB6P7GJLCuC65NQ==' };
+    const raw = new URLSearchParams({ sale_id: 'S1', product_id: 'rlbL5LDgB6P7GJLCuC65NQ==', product_name: 'Ciphire Pro', price: '1500', license_key: 'AAAAAAAA-BBBBBBBB-CCCCCCCC-DDDDDDDD' }).toString();
+    const rec = await handlePing(env, raw, 'application/x-www-form-urlencoded', { fetchImpl: async () => { throw new Error('must not call Gumroad'); } });
+    assert.equal(rec.brand, 'Ciphire'); assert.equal(rec.tierForProduct, null); assert.equal(rec.verify.checked, false);
+    assert.ok(store.has('sale:S1:sale'));
+});
