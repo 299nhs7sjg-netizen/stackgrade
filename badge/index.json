@@ -2,22 +2,22 @@
   {
     "domain": "bbc.co.uk",
     "claim": "A",
-    "checkedAt": "2026-10-02T01:19:33.987Z",
+    "checkedAt": "2026-10-02T18:23:36.688Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=bbc.co.uk",
     "letter": "A",
     "score": 100,
     "coverage": 90,
     "groups": {
       "email": 100,
-      "web": 100,
-      "domain": 100
+      "domain": 100,
+      "web": 100
     },
     "status": "verified"
   },
   {
     "domain": "github.com",
     "claim": "A",
-    "checkedAt": "2026-10-02T01:19:33.533Z",
+    "checkedAt": "2026-10-02T18:23:52.731Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=github.com",
     "letter": "A",
     "score": 97,
@@ -32,30 +32,30 @@
   {
     "domain": "linear.app",
     "claim": "A",
-    "checkedAt": "2026-10-02T01:19:33.366Z",
+    "checkedAt": "2026-10-02T18:23:36.634Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=linear.app",
     "letter": "A",
     "score": 97,
     "coverage": 100,
     "groups": {
       "email": 100,
-      "web": 91,
-      "domain": 100
+      "domain": 100,
+      "web": 91
     },
     "status": "verified"
   },
   {
     "domain": "stripe.com",
     "claim": "A",
-    "checkedAt": "2026-10-02T01:19:38.870Z",
+    "checkedAt": "2026-10-02T18:23:37.035Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=stripe.com",
     "letter": "A",
     "score": 99,
     "coverage": 100,
     "groups": {
       "email": 100,
-      "web": 97,
-      "domain": 100
+      "domain": 100,
+      "web": 97
     },
     "status": "verified"
   }

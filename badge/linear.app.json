@@ -1,15 +1,15 @@
 {
   "domain": "linear.app",
   "claim": "A",
-  "checkedAt": "2026-10-02T01:19:33.366Z",
+  "checkedAt": "2026-10-02T18:23:36.634Z",
   "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=linear.app",
   "letter": "A",
   "score": 97,
   "coverage": 100,
   "groups": {
     "email": 100,
-    "web": 91,
-    "domain": 100
+    "domain": 100,
+    "web": 91
   },
   "status": "verified"
 }
