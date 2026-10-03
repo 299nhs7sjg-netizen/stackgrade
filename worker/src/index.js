@@ -30,7 +30,7 @@ const withBudget = (max, fn) => { const st = { n: 0, max }; return als.run(st, a
 // KV layout. Monitor schedule entries are one key each (due:<hour>:<subslot>:<monitorId>, details in key metadata), so
 // concurrent writes never overwrite each other and a cron run needs a single list() call. Each monitor's snapshot record
 // is written only by that monitor's own check, and holds its recent change events (the alert feed is built from them).
-const K = { acct: (id) => `acct:${id}`, due: (h, s, m) => `due:${h}:${s}:${m}`, snap: (m) => `snap:${m}`, leads: (a) => `leads:${a}` };
+const K = { acct: (id) => `acct:${id}`, due: (h, s, m) => `due:${h}:${s}:${m}`, snap: (m) => `snap:${m}`, leads: (a) => `leads:${a}`, occ: (h) => `dueocc:${h}` };
 const EVENTS_PER_MONITOR = 25;
 const getJ = (env, k) => env.KV.get(k, 'json');
 const putJ = (env, k, v, opt) => env.KV.put(k, JSON.stringify(v), opt);
@@ -102,6 +102,12 @@ function normDomain(raw) {
 // ---- monitors ----
 async function addToSlots(env, items) {
     for (const { m, a, d, f, h, s, w } of items) await env.KV.put(K.due(h, s, m), '', { metadata: { a, d, f, w } });
+    // Keep the per-hour occupancy hint in sync (only when it exists; a missing hint makes the cron fall back to list()).
+    const byHour = new Map(); for (const { h, s } of items) byHour.set(h, [...(byHour.get(h) || []), s]);
+    for (const [h, subs] of byHour) {
+        const occ = await getJ(env, K.occ(h));
+        if (Array.isArray(occ) && subs.some((x) => !occ.includes(x))) await putJ(env, K.occ(h), [...new Set([...occ, ...subs])].sort((x, y) => x - y));
+    }
 }
 const removeFromSlot = (env, mon) => env.KV.delete(K.due(mon.h, mon.s, mon.id));
 
@@ -181,8 +187,24 @@ async function sendWebhook(hook, domain, events) {
 // Cron: every 5 minutes. Monitors are spread over 24 hourly slots x 12 sub-slots (weekly ones also by weekday).
 export async function runSlot(env, date, { limit = MAX_FANOUT } = {}) {
     const h = date.getUTCHours(); const sub = Math.floor(date.getUTCMinutes() / 5); const wd = date.getUTCDay();
-    const page = await env.KV.list({ prefix: `due:${h}:${sub}:`, limit: 1000 });
-    const slot = page.keys.map((k) => ({ m: k.name.split(':')[3], ...(k.metadata || {}) }));
+    // List budget (free plan: 1,000 list() calls/day): instead of one list() per 5-minute run (288/day), list the whole
+    // hour once at sub-slot 0 and keep a tiny "occupied sub-slots" hint per hour (dueocc:<h>, written only when it
+    // changes). Other sub-slots list only when the hint says they hold monitors. A missing hint falls back to list().
+    let keys;
+    if (sub === 0) {
+        const all = await env.KV.list({ prefix: `due:${h}:`, limit: 1000 });
+        if (all.list_complete !== false) {
+            const occ = [...new Set(all.keys.map((k) => Number(k.name.split(':')[2])))].sort((x, y) => x - y);
+            const prev = await getJ(env, K.occ(h));
+            if (JSON.stringify(prev) !== JSON.stringify(occ)) await putJ(env, K.occ(h), occ);
+            keys = all.keys.filter((k) => k.name.startsWith(`due:${h}:0:`));
+        } else await env.KV.delete(K.occ(h)); // too many to index: fall back to per-sub-slot list()
+    } else {
+        const occ = await getJ(env, K.occ(h));
+        if (Array.isArray(occ) && !occ.includes(sub)) keys = [];
+    }
+    if (!keys) keys = (await env.KV.list({ prefix: `due:${h}:${sub}:`, limit: 1000 })).keys;
+    const slot = keys.map((k) => ({ m: k.name.split(':')[3], ...(k.metadata || {}) }));
     const due = slot.filter((x) => x.a && (x.f === 'd' || x.w === wd));
     const run = due.slice(0, limit);
     const results = await Promise.allSettled(run.map((x) => dispatchCheck(env, { m: x.m, a: x.a, d: x.d })));

@@ -212,3 +212,34 @@ test('CORS: FortHire (forthire.com) and the old ciphire.pages.dev origin may cal
     assert.equal(h('https://ciphire.pages.dev'), 'https://ciphire.pages.dev');
     assert.equal(h('https://evil.example'), undefined);
 });
+test('cron list budget: one list per hour when empty, hint skips empty sub-slots, add updates hint', async () => {
+    const env = envBase(); const sent = [];
+    env.SELF = { fetch: async (u, init) => { sent.push(JSON.parse(init.body)); return jres(200, { ok: true, subrequests: 1 }); } };
+    for (let sub = 0; sub < 12; sub++) await runSlot(env, new Date(Date.UTC(2026, 9, 1, 9, sub * 5)));
+    assert.equal(env.KV.stats.lists, 1, 'empty hour: a single list() at sub-slot 0');
+    assert.equal(env.KV.m.get('dueocc:9'), '[]');
+    const w0 = env.KV.stats.writes;
+    await runSlot(env, new Date(Date.UTC(2026, 9, 2, 9, 0)));
+    assert.equal(env.KV.stats.writes, w0, 'unchanged hint is not rewritten');
+    // a monitor lands in hour 9 sub-slot 7 (simulate addToSlots via the admin move path is heavier; write like addToSlots does)
+    await env.KV.put('due:9:7:mX', '', { metadata: { a: 'A', d: 'z.com', f: 'd', w: 0 } });
+    await env.KV.put('dueocc:9', '[7]');
+    const l0 = env.KV.stats.lists;
+    await runSlot(env, new Date(Date.UTC(2026, 9, 2, 9, 30))); // sub 6: skipped
+    assert.equal(env.KV.stats.lists, l0);
+    const r = await runSlot(env, new Date(Date.UTC(2026, 9, 2, 9, 35))); // sub 7: listed + dispatched
+    assert.equal(env.KV.stats.lists, l0 + 1); assert.equal(r.summary.dispatched, 1); assert.equal(sent.at(-1).d, 'z.com');
+    // reconciliation at sub 0 repairs a lost hint
+    await env.KV.put('dueocc:9', '[]');
+    await runSlot(env, new Date(Date.UTC(2026, 9, 3, 9, 0)));
+    assert.equal(env.KV.m.get('dueocc:9'), '[7]');
+});
+test('creating a monitor adds its sub-slot to an existing hour hint', async () => {
+    const env = envBase();
+    for (let h = 0; h < 24; h++) await env.KV.put(`dueocc:${h}`, '[]');
+    const t = (await call(env, req('POST', '/v1/free/token', { ip: '7.7.7.7' }))).body.token;
+    assert.equal((await call(env, req('POST', '/v1/monitors', { token: t, body: { domain: 'example.org' }, ip: '7.7.7.7' }))).status, 200);
+    const due = [...env.KV.m.keys()].find((k) => k.startsWith('due:'));
+    const [, h, s] = due.split(':');
+    assert.deepEqual(JSON.parse(env.KV.m.get(`dueocc:${h}`)), [Number(s)]);
+});
