@@ -201,6 +201,14 @@ test('Gumroad ping logs non-StackGrade products (Ciphire Pro) with a brand label
     const env = { KV, PRODUCT_PRO: 'yQKekf6hTcpoK_7Xp83jPg==', PRODUCT_CIPHIRE_PRO: 'rlbL5LDgB6P7GJLCuC65NQ==' };
     const raw = new URLSearchParams({ sale_id: 'S1', product_id: 'rlbL5LDgB6P7GJLCuC65NQ==', product_name: 'Ciphire Pro', price: '1500', license_key: 'AAAAAAAA-BBBBBBBB-CCCCCCCC-DDDDDDDD' }).toString();
     const rec = await handlePing(env, raw, 'application/x-www-form-urlencoded', { fetchImpl: async () => { throw new Error('must not call Gumroad'); } });
-    assert.equal(rec.brand, 'Ciphire'); assert.equal(rec.tierForProduct, null); assert.equal(rec.verify.checked, false);
+    assert.equal(rec.brand, 'FortHire'); assert.equal(rec.tierForProduct, null); assert.equal(rec.verify.checked, false);
     assert.ok(store.has('sale:S1:sale'));
+});
+
+test('CORS: FortHire (forthire.com) and the old ciphire.pages.dev origin may call /v1/support; others may not', async () => {
+    const { cors } = await import('../src/util.js');
+    const h = (o) => cors(new Request('https://api.example/v1/support', { headers: { origin: o } }))['access-control-allow-origin'];
+    assert.equal(h('https://forthire.com'), 'https://forthire.com');
+    assert.equal(h('https://ciphire.pages.dev'), 'https://ciphire.pages.dev');
+    assert.equal(h('https://evil.example'), undefined);
 });
