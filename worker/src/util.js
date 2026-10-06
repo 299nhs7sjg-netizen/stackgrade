@@ -3,10 +3,12 @@ export const ALLOWED_ORIGINS = ['https://299nhs7sjg-netizen.github.io', 'https:/
     // GreenTools product sites on Cloudflare Pages (POST /v1/unlock)
     'https://blotout.pages.dev', 'https://docburn.pages.dev', 'https://lockfit.pages.dev', 'https://metagone.pages.dev', 'https://snapfit-app.pages.dev', 'https://greentools.pages.dev', 'https://greentools-hub.pages.dev'];
 
+export const GT_ORIGIN = /^https:\/\/([a-z0-9-]+\.)?(blotout|docburn|lockfit|metagone|snapfit-app|greentools|greentools-hub)\.pages\.dev$/;
 export function cors(req) {
     const o = req.headers.get('origin');
+    const gt = o && GT_ORIGIN.test(o);   // GreenTools sites incl. their Pages preview (staging) aliases
     const h = { 'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS', 'access-control-allow-headers': 'authorization, content-type', 'access-control-max-age': '86400', vary: 'origin' };
-    if (o && ALLOWED_ORIGINS.includes(o)) h['access-control-allow-origin'] = o;
+    if (o && (ALLOWED_ORIGINS.includes(o) || gt)) h['access-control-allow-origin'] = o;
     return h;
 }
 export function json(req, data, status = 200, extra = {}) {

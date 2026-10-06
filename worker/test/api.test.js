@@ -259,3 +259,11 @@ test('unlock: current code ok, retired code / wrong product / junk rejected, Gum
     await assert.rejects(postUnlock(req('blotout', 'ABCD1234-EF567890-12345678-9ABCDEF0'), env, { fetchImpl: gum({ refunded: true }) }), (e) => e.status === 403);
     await assert.rejects(postUnlock(req('imagebuff', 'IB-DEMO-UNLOCK-2026'), env), (e) => e.status === 403);
 });
+import { cors } from '../src/util.js';
+test('cors: GreenTools sites and their preview aliases, nothing else', () => {
+    const o = (origin) => cors(new Request('https://x/', { headers: { origin } }))['access-control-allow-origin'];
+    assert.equal(o('https://blotout.pages.dev'), 'https://blotout.pages.dev');
+    assert.equal(o('https://staging.snapfit-app.pages.dev'), 'https://staging.snapfit-app.pages.dev');
+    assert.equal(o('https://evil.pages.dev'), undefined);
+    assert.equal(o('https://blotout.pages.dev.evil.com'), undefined);
+});
