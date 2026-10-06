@@ -1,8 +1,8 @@
 // Agency Kit UI test (Chrome). BASE defaults to local server. Mocked unlock uses Playwright routes on api.gumroad.com.
-import { chromium } from '/home/box/.local/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';   // npm i -g playwright (or set NODE_PATH)
 import { encodeConfig } from '../assets/license.js';
 const BASE = process.env.BASE || 'http://localhost:8765/stackgrade/';
-const SHOTS = process.env.SHOTS || '/workspace/shots';
+const SHOTS = process.env.SHOTS || 'shots';
 const DOMAIN = process.env.DOMAIN || 'example.com';
 const FAKE = 'FAKE0000-FAKE0000-FAKE0000-FAKE0000';
 const TOK = await encodeConfig({ name: 'Fake Agency', color: 'ff0000', cta: 'Call us', ctaUrl: 'https://example.com', hidePowered: true }, FAKE);

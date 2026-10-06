@@ -34,7 +34,7 @@ Internationalized domains are shown in Unicode (`bücher.de`), with the punycode
 
 Embed: `<a href="https://299nhs7sjg-netizen.github.io/stackgrade/?d=github.com"><img src="https://299nhs7sjg-netizen.github.io/stackgrade/badge/github.com.svg" alt="StackGrade grade" height="20"></a>`
 
-**Daily re-grading is not active yet.** `ci/badges.yml` is a ready-to-use GitHub Actions workflow, but the bot's token lacks the `workflow` scope needed to push files to `.github/workflows/`. Until it's enabled, badges are refreshed only when `tools/badges.mjs` is run and committed. Self-serve badge requests are not open.
+**Daily re-grading is not active yet.** `ci/badges.yml` is a ready-to-use GitHub Actions workflow, but the deploy token lacks the `workflow` scope needed to push files to `.github/workflows/`. Until it's enabled, badges are refreshed only when `tools/badges.mjs` is run and committed. Self-serve badge requests are not open.
 
 ## Agency widget
 

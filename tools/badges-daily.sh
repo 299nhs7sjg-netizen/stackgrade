@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Daily StackGrade badge re-grade: node tools/badges.mjs, then commit + push badge/ if anything changed.
-# Usage: tools/badges-daily.sh [--if-needed]   (--if-needed = skip if today's run already succeeded; used by the box cron backup)
+# Usage: tools/badges-daily.sh [--if-needed]   (--if-needed = skip if today's run already succeeded; used by a scheduled backup run)
 # Writes .state/last-status (ok|fail + time + error tail) every run and .state/last-success-date on success.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-export TZ=America/Chicago HOME="${HOME:-/home/box}"
+export TZ=America/Chicago
 [ -x "$HOME/.local/node22/bin/node" ] && export PATH="$HOME/.local/node22/bin:$PATH"
 export PATH="$PATH:/usr/local/bin:/usr/bin:/bin"
 mkdir -p .state logs

@@ -1,4 +1,4 @@
-import { chromium } from '/home/box/.local/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';   // npm i -g playwright (or set NODE_PATH)
 const BASE = process.env.BASE || 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const SHOTS = process.env.SHOTS || '/tmp/pt';
 const cases = [

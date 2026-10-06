@@ -1,5 +1,5 @@
 // Generates static 1200x630 share cards into assets/og/. Run: node tools/og.mjs
-import { chromium } from '/home/box/.local/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';   // npm i -g playwright (or set NODE_PATH)
 const CARDS = {
     home: ['How healthy is your domain?', 'Free 0–100 grade for SPF, DKIM, DMARC, security headers and domain expiry, with plain-English fixes.', 'A', '97'],
     dmarc: ['DMARC checker', 'Is your domain protected from spoofing? Check your DMARC policy and get a copy-paste fix.', 'p=', 'reject'],

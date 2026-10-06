@@ -1,5 +1,5 @@
 # Daily badge re-grade. NOT ACTIVE: to enable, move this file to .github/workflows/badges.yml.
-# (The bot's token lacks the GitHub "workflow" scope, so it cannot push files under .github/workflows/.)
+# (The deploy token lacks the GitHub "workflow" scope, so it cannot push files under .github/workflows/.)
 name: Re-grade badges
 on:
   schedule:

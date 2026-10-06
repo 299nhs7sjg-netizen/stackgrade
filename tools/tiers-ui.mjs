@@ -1,9 +1,9 @@
 // Tier / dashboard / pricing / removal UI test (Chrome). BASE defaults to the local server.
 // Free flow uses the LIVE API; paid flows mock Gumroad (per product) and the API with Playwright routes.
-import { chromium } from '/home/box/.local/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';   // npm i -g playwright (or set NODE_PATH)
 import { CONFIG } from '../assets/config.js';
 const BASE = process.env.BASE || 'http://localhost:8765/stackgrade/';
-const SHOTS = process.env.SHOTS || '/workspace/shots';
+const SHOTS = process.env.SHOTS || 'shots';
 const API = CONFIG.api;
 const NOTE = 'Email alerts coming soon; alerts via in-app feed and webhooks today';
 const out = []; const ok = (name, cond, extra = '') => out.push(`${cond ? 'PASS' : 'FAIL'} ${name}${extra ? ' :: ' + extra : ''}`);

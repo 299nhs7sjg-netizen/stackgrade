@@ -2,7 +2,7 @@
 
 Last updated: October 1, 2026
 
-These terms apply to the StackGrade website, widget, dashboard and API ("StackGrade"), run by Wes Green. By using StackGrade you agree to them.
+These terms apply to the StackGrade website, widget, dashboard and API ("StackGrade"), run by the StackGrade team (contact: the help form in the [StackGrade dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/) or the [removal and privacy request form](https://299nhs7sjg-netizen.github.io/stackgrade/remove/)). By using StackGrade you agree to them.
 
 ## What StackGrade is
 

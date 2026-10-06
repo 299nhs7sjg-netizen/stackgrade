@@ -2,7 +2,7 @@
 
 Last updated: October 1, 2026
 
-StackGrade is a website and email health grader run by Wes Green. This page explains what data StackGrade handles, where, and for how long. Questions or requests: use the [removal and privacy request form](https://299nhs7sjg-netizen.github.io/stackgrade/remove/) or [open an issue on GitHub](https://github.com/299nhs7sjg-netizen/stackgrade/issues).
+StackGrade is a website and email health grader run by the StackGrade team (contact: the help form in the [StackGrade dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/) or the [removal and privacy request form](https://299nhs7sjg-netizen.github.io/stackgrade/remove/)). This page explains what data StackGrade handles, where, and for how long. Questions or requests: use the [removal and privacy request form](https://299nhs7sjg-netizen.github.io/stackgrade/remove/) or [open an issue on GitHub](https://github.com/299nhs7sjg-netizen/stackgrade/issues).
 
 ## The free grader runs in your browser
 

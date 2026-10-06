@@ -1,4 +1,4 @@
-import { chromium } from '/home/box/.local/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';   // npm i -g playwright (or set NODE_PATH)
 const [d, w, h, out, scroll] = process.argv.slice(2);
 const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
 const page = await browser.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 1 });
