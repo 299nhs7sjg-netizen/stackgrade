@@ -243,3 +243,19 @@ test('creating a monitor adds its sub-slot to an existing hour hint', async () =
     const [, h, s] = due.split(':');
     assert.deepEqual(JSON.parse(env.KV.m.get(`dueocc:${h}`)), [Number(s)]);
 });
+
+// ---- /v1/unlock (GreenTools product sites) ----
+import { postUnlock, codeKey } from '../src/unlock.js';
+test('unlock: current code ok, retired code / wrong product / junk rejected, Gumroad license ok, refunded rejected', async () => {
+    const kv = new Map(); const env = { KV: { get: async (k) => kv.get(k) ?? null } };
+    kv.set(await codeKey('blotout', 'GT-BLO-NEWC-QDE2-ABCD-WXYZ'), '1');
+    const req = (product, key, ip = '10.0.0.' + Math.floor(Math.random() * 250)) => new Request('https://api/v1/unlock', { method: 'POST', headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip }, body: JSON.stringify({ product, key }) });
+    const gum = (purchase) => async (url, init) => { assert.ok(String(init.body).includes('product_id=Qs1Qjc4ilvLILnInaDwHrg%3D%3D')); return new Response(JSON.stringify(purchase ? { success: true, purchase } : { success: false, message: 'That license does not exist for the provided product.' }), { status: purchase ? 200 : 404 }); };
+    assert.deepEqual(await postUnlock(req('blotout', ' gt-blo-newc-qde2-abcd-wxyz '), env, { fetchImpl: gum(null) }), { ok: true, product: 'blotout', via: 'code' });
+    await assert.rejects(postUnlock(req('blotout', 'IB-BLO-3DG9-AYCM'), env, { fetchImpl: gum(null) }), (e) => e.status === 403);
+    await assert.rejects(postUnlock(req('docburn', 'GT-BLO-NEWC-QDE2-ABCD-WXYZ'), env, { fetchImpl: async () => new Response('{"success":false}', { status: 404 }) }), (e) => e.status === 403);
+    await assert.rejects(postUnlock(req('nope', 'GT-BLO-NEWC-QDE2-ABCD-WXYZ'), env), (e) => e.status === 400);
+    assert.equal((await postUnlock(req('blotout', 'ABCD1234-EF567890-12345678-9ABCDEF0'), env, { fetchImpl: gum({ refunded: false }) })).via, 'license');
+    await assert.rejects(postUnlock(req('blotout', 'ABCD1234-EF567890-12345678-9ABCDEF0'), env, { fetchImpl: gum({ refunded: true }) }), (e) => e.status === 403);
+    await assert.rejects(postUnlock(req('imagebuff', 'IB-DEMO-UNLOCK-2026'), env), (e) => e.status === 403);
+});

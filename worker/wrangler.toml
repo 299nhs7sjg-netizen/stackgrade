@@ -27,3 +27,21 @@ PRODUCT_CIPHIRE_PRO = "rlbL5LDgB6P7GJLCuC65NQ=="
 
 [observability]
 enabled = true
+
+# ---- Staging: `wrangler deploy --env staging` -> api-staging.<sub>.workers.dev. Own KV, no cron, no secrets needed for
+# /v1/unlock tests. Smoke: node tools/unlock-smoke.mjs <base>. ----
+[env.staging]
+name = "api-staging"
+workers_dev = true
+preview_urls = false
+kv_namespaces = [{ binding = "KV", id = "994f92e27dbf4e61b839f7bc2452c09e" }]   # STACKGRADE_STAGING
+services = [{ binding = "SELF", service = "api-staging" }]
+
+[env.staging.triggers]
+crons = []
+
+[env.staging.vars]
+PRODUCT_AGENCY_KIT = "nexe9SLeFPs0uJlyO6EYkw=="
+PRODUCT_PRO = "yQKekf6hTcpoK_7Xp83jPg=="
+PRODUCT_AGENCY = "SDoHJkCBWhp7MOLhe3RhXQ=="
+PRODUCT_AGENCY_PLUS = "O0PyQiJuzM8-c9NCThQKzQ=="

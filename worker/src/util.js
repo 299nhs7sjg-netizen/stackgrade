@@ -1,5 +1,7 @@
 // Small helpers shared by the Worker modules.
-export const ALLOWED_ORIGINS = ['https://299nhs7sjg-netizen.github.io', 'https://forthire.com', 'https://www.forthire.com', 'https://ciphire.pages.dev', 'http://localhost:8765'];
+export const ALLOWED_ORIGINS = ['https://299nhs7sjg-netizen.github.io', 'https://forthire.com', 'https://www.forthire.com', 'https://ciphire.pages.dev', 'http://localhost:8765',
+    // GreenTools product sites on Cloudflare Pages (POST /v1/unlock)
+    'https://blotout.pages.dev', 'https://docburn.pages.dev', 'https://lockfit.pages.dev', 'https://metagone.pages.dev', 'https://snapfit-app.pages.dev', 'https://greentools.pages.dev', 'https://greentools-hub.pages.dev'];
 
 export function cors(req) {
     const o = req.headers.get('origin');

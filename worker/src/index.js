@@ -7,6 +7,7 @@ import { json, err, cors, sha256hex, randomId, hashInt, readJson, HttpError, rat
 import { checkUrl, safeFetch } from './ssrf.js';
 import { fingerprint } from './fingerprint.js';
 import { takeSnapshot, mergeSnapshot, diffSnapshots, sameSnapshot } from './snapshot.js';
+import { postUnlock } from './unlock.js';
 
 export const VERSION = '1.0.0';
 const DAY = 86400000;
@@ -377,6 +378,7 @@ async function route(req, env, ctx) {
         return new Response('ok', { status: 200, headers: { 'content-type': 'text/plain' } });
     }
     if (p === '/v1/support' && M === 'POST') return json(req, await postSupport(req, env));
+    if (p === '/v1/unlock' && M === 'POST') return json(req, await postUnlock(req, env));
     if (p === '/v1/license/verify' && M === 'POST') {
         if (!rateLimit(`lic:${clientIp(req)}`, 30, 60000)) return err(req, 429, 'Too many license checks. Wait a minute.');
         const b = await readJson(req, 2048);
