@@ -1,15 +1,15 @@
 {
   "domain": "bbc.co.uk",
   "claim": "A",
-  "checkedAt": "2026-10-14T11:34:34.697Z",
+  "checkedAt": "2026-10-15T09:42:32.954Z",
   "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=bbc.co.uk",
   "letter": "A",
   "score": 100,
   "coverage": 90,
   "groups": {
     "email": 100,
-    "web": 100,
-    "domain": 100
+    "domain": 100,
+    "web": 100
   },
   "status": "verified"
 }
