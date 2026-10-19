@@ -127,6 +127,11 @@ export async function fulfillSession(env, session, { now = Date.now(), fetchImpl
     if (rec.customer) { const l = (await getJ(env, `scus:${rec.customer}`)) || []; if (!l.includes(h)) await putJ(env, `scus:${rec.customer}`, [...l, h].slice(-50)); }
     // Support reissue by purchase email (admin stripe-key): only a hash of the address is stored.
     if (email) { const ek = `sem:${await emailKey(email)}`; const l = (await getJ(env, ek)) || []; if (!l.includes(h)) await putJ(env, ek, [...l, h].slice(-50)); }
+    if (rec.paymentIntent) { // a dispute that arrived before this purchase was processed
+        const pend = await getJ(env, `sdpend:${rec.paymentIntent}`);
+        for (const [id, x] of Object.entries(pend || {})) if (x.livemode === rec.livemode) await setDispute(env, h, id, x.state, now);
+        if (pend) await env.KV.delete(`sdpend:${rec.paymentIntent}`);
+    }
     const out = { issued: true, keyHash: h, entry: entry.id };
     const from = entry.kind === 'gt' ? env.GT_EMAIL_FROM : env.SG_EMAIL_FROM;
     if (email && from) {
@@ -208,10 +213,13 @@ export async function onDispute(env, d, closed, { now = Date.now(), fetchImpl = 
     const state = closed ? OUTCOME(d.status) : 'open';
     const r = h ? await setDispute(env, h, d.id, state, now) : null;
     const action = !r ? 'none' : !closed ? 'suspended' : state === 'lost' ? 'revoked' : 'restored';
+    // Not matched yet: a dispute can arrive before checkout.session.completed was processed. Park it on the payment intent;
+    // fulfillSession applies it when the key is issued.
+    if (!r && d.payment_intent) { const pk = `sdpend:${d.payment_intent}`; const l = (await getJ(env, pk)) || {}; await putJ(env, pk, { ...l, [d.id]: { state, livemode: !!d.livemode } }, { expirationTtl: 90 * 86400 }); }
     if (!r) console.log(JSON.stringify({ stripe: 'dispute not matched to a key', dispute: d.id, charge: d.charge || null }));
     const after = r?.after;
     const extra = [`Dispute: ${d.id} (charge ${d.charge || '?'}${d.payment_intent ? `, ${d.payment_intent}` : ''})`, `Reason: ${d.reason || '?'}`, `Status: ${d.status || '?'}`,
-        r ? `Key: ${action}${after?.session ? ` (checkout ${after.session})` : ''}` : 'Key: NOT matched automatically (subscription charges do not carry the payment link). Find it in Stripe (customer or subscription id) and use the support procedure: POST /v1/admin/stripe-key with {"customer": "cus_...", "action": "' + (!closed ? 'suspend' : state === 'lost' ? 'revoke' : 'restore') + '", "dispute": "' + d.id + '"}.',
+        r ? `Key: ${action}${after?.session ? ` (checkout ${after.session})` : ''}` : 'Key: NOT matched yet. If this payment\'s key is issued later (the dispute arrived before the purchase was processed), this is applied automatically. A subscription charge is never matched automatically (it carries no payment link): find it in Stripe (customer or subscription id) and use the support procedure: POST /v1/admin/stripe-key with {"customer": "cus_...", "action": "' + (!closed ? 'suspend' : state === 'lost' ? 'revoke' : 'restore') + '", "dispute": "' + d.id + '"}.',
         'Disputes are not included in the totals below.'];
     let notify;
     try { notify = await notifySale(env, { resource: closed ? 'stripe_dispute_closed' : 'stripe_dispute', label: closed ? 'Dispute closed' : 'Dispute', saleId: d.id, productName: after?.name || 'unmatched Stripe payment', price: d.amount, currency: d.currency, test: !d.livemode, extra },

@@ -309,3 +309,15 @@ test('admin stripe-key action needs exactly one key', async () => {
     const r = await call(env, 'POST', '/v1/admin/stripe-key', { body: { customer: 'cus_two', action: 'suspend' }, headers: { authorization: 'Bearer adm_test' } });
     assert.equal(r.status, 409); assert.match(r.body.error, /exactly one/);
 });
+
+test('dispute that arrives before the purchase is processed is applied when the key is issued', async () => {
+    const env = envBase(); const d = dispute({ payment_intent: 'pi_early' });
+    const r = await signed(env, dEv('charge.dispute.created', d));
+    assert.match(r.body.skipped, /no matching key/);
+    assert.match(mails.find((m) => /^\[TEST\] Dispute: unmatched/.test(m.subject)).text, /applied automatically/);
+    const s = session({ payment_intent: 'pi_early' }); await signed(env, completed(s));
+    const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
+    assert.equal((await call(env, 'POST', '/v1/unlock', { body: { product: 'snapfit', key } })).status, 403, 'issued suspended');
+    assert.equal((await signed(env, dEv('charge.dispute.closed', { ...d, status: 'won' }))).body.dispute, 'restored');
+    assert.equal((await call(env, 'POST', '/v1/unlock', { body: { product: 'snapfit', key } })).status, 200);
+});
