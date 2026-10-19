@@ -52,9 +52,9 @@ export function normalizeKey(raw) {
 }
 // Recognise things people paste instead of the license key.
 export function keyShapeHint(k) {
-    if (!k) return 'Paste the license key from your receipt email.';
+    if (!k) return 'Paste your license key (shown after checkout, or in your Gumroad receipt for earlier purchases).';
     if (/^\d{5,}$/.test(k)) return 'That looks like an order number, not a license key. The license key has four groups of 8 letters and numbers, like XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX.';
-    if (/@/.test(k)) return 'That looks like an email address. Paste the license key from your receipt email instead.';
+    if (/@/.test(k)) return 'That looks like an email address. Paste the license key instead.';
     if (/^https?:/i.test(k) || /gumroad\.com/i.test(k)) return 'That looks like a link. Paste the license key itself (four groups of 8 letters and numbers), not the receipt or product link.';
     if (/^[A-Za-z0-9_-]{20,24}==$/.test(k)) return 'That looks like a Gumroad sale or product ID, not a license key. The license key has four groups of 8 letters and numbers.';
     return null;
@@ -93,7 +93,7 @@ export async function verifyLicense(key, products, { fetchImpl = globalThis.fetc
     if (!list.length) return { ok: false, definitive: true, reason: 'No paid plans are on sale yet.' };
     const hint = keyShapeHint(k);
     if (hint) return { ok: false, definitive: true, notFound: true, shape: true, reason: hint };
-    if (k.length < 8 || k.length > 200 || /[<>"'\s]/.test(k)) return { ok: false, definitive: true, notFound: true, shape: true, reason: 'Enter the license key from your receipt email.' };
+    if (k.length < 8 || k.length > 200 || /[<>"'\s]/.test(k)) return { ok: false, definitive: true, notFound: true, shape: true, reason: 'Enter your license key (shown after checkout, or in your Gumroad receipt for earlier purchases).' };
     const results = await Promise.all(list.map(async ([tier, id]) => ({ tier, ...(await verifyOne(String(id).trim(), k, fetchImpl, now)) })));
     const good = results.filter((r) => r.ok).sort((a, b) => TIERS[b.tier].rank - TIERS[a.tier].rank);
     if (good.length) {

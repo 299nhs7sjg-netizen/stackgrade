@@ -50,7 +50,7 @@ export async function stripeKeyStatus(env, key, now = Date.now()) {
     const k = String(key || '').trim().toUpperCase();
     if (!STRIPE_KEY_RE.test(k)) return { ok: false, definitive: true, notFound: true, reason: 'That is not a valid key.' };
     const rec = await env.KV.get(`skey:${await keyHash(k)}`, 'json');
-    if (!rec) return { ok: false, definitive: true, notFound: true, reason: 'That key was not found. Check it against your receipt email.' };
+    if (!rec) return { ok: false, definitive: true, notFound: true, reason: 'That key was not found. Check that you copied the whole key from the page shown after checkout. Lost it? Email support@forthire.com with your Stripe receipt.' };
     const base = { kind: rec.kind, name: rec.name, products: rec.products || null, tier: rec.tier || null, recurring: !!rec.subscription, lockAt: rec.lockAt || null, test: !rec.livemode };
     if (rec.status === 'refunded') return { ...base, ok: false, definitive: true, reason: 'This purchase was refunded, so the key is no longer active.' };
     if (!ACTIVE.has(rec.status)) return { ...base, ok: false, definitive: true, reason: rec.status === 'canceled' ? 'This subscription has ended. Subscribe again to restore access.' : `This subscription is not active (${rec.status}). Update your payment method to restore access.` };
