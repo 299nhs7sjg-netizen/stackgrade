@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Privacy policy | StackGrade</title>
-<meta name="description" content="What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests.">
+<meta name="description" content="What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Stripe (earlier purchases by Gumroad), removal requests.">
 <link rel="canonical" href="https://299nhs7sjg-netizen.github.io/stackgrade/privacy/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="StackGrade">
 <meta property="og:title" content="Privacy policy | StackGrade">
-<meta property="og:description" content="What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests.">
+<meta property="og:description" content="What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Stripe (earlier purchases by Gumroad), removal requests.">
 <meta property="og:url" content="https://299nhs7sjg-netizen.github.io/stackgrade/privacy/">
 <meta property="og:image" content="https://299nhs7sjg-netizen.github.io/stackgrade/assets/og/home.png">
 <meta property="og:image:width" content="1200">
@@ -18,7 +18,7 @@
 <meta name="theme-color" content="#0f172a">
 <link rel="icon" href="/stackgrade/assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/stackgrade/assets/style.css">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade undefined","url":"https://299nhs7sjg-netizen.github.io/stackgrade/privacy/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests."}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"StackGrade undefined","url":"https://299nhs7sjg-netizen.github.io/stackgrade/privacy/","applicationCategory":"SecurityApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Stripe (earlier purchases by Gumroad), removal requests."}</script>
 
 </head>
 <body>
@@ -35,12 +35,13 @@
 <p>StackGrade does not receive these results and does not keep a record of which domains you grade.</p>
 <h2 id="the-stackgrade-api">The StackGrade API</h2>
 <p>Some features use the StackGrade API, a Cloudflare Worker at <code>api.stackgrade.workers.dev</code>:</p>
-<ul><li><b>Tech-stack scan:</b> the domain you grade is sent to the API, which fetches that site's public homepage and reads its HTML tags to detect the CMS, analytics and scripts. The result is kept only in short-lived memory (up to 6 hours) to avoid repeat fetches. It is not written to storage.</li><li><b>License checks:</b> your Gumroad license key is sent to the API and checked with Gumroad. The API stores a one-way hash of the key as your account ID, plus your plan and the time of the last check. It does not store the key itself.</li><li><b>Monitoring:</b> for each domain you monitor, the API stores the domain, its latest snapshot (public DNS records, Mozilla Observatory results, detected technologies, expiry date, job board count) and its 25 most recent change events. If you set a webhook URL, it is stored so alerts can be sent to it.</li><li><b>Free monitor token:</b> the free plan uses a random token instead of a license. To limit abuse, the API stores a salted one-way hash of your network (the first three parts of your IPv4 address, or the IPv6 /48 prefix) for 7 days when you create a free monitor.</li><li><b>Rate limiting:</b> IP addresses are used briefly in memory to limit request rates. They are not stored.</li></ul>
+<ul><li><b>Tech-stack scan:</b> the domain you grade is sent to the API, which fetches that site's public homepage and reads its HTML tags to detect the CMS, analytics and scripts. The result is kept only in short-lived memory (up to 6 hours) to avoid repeat fetches. It is not written to storage.</li><li><b>License checks:</b> your license key is sent to the API, which checks a Gumroad key with Gumroad and a Stripe-issued key against its own records. The API stores a one-way hash of the key as your account ID, plus your plan and the time of the last check. It does not store the key itself.</li><li><b>Monitoring:</b> for each domain you monitor, the API stores the domain, its latest snapshot (public DNS records, Mozilla Observatory results, detected technologies, expiry date, job board count) and its 25 most recent change events. If you set a webhook URL, it is stored so alerts can be sent to it.</li><li><b>Free monitor token:</b> the free plan uses a random token instead of a license. To limit abuse, the API stores a salted one-way hash of your network (the first three parts of your IPv4 address, or the IPv6 /48 prefix) for 7 days when you create a free monitor.</li><li><b>Rate limiting:</b> IP addresses are used briefly in memory to limit request rates. They are not stored.</li></ul>
 <h2 id="lead-capture-agency-widgets">Lead capture (agency widgets)</h2>
 <p>Agencies on plans with lead capture can show a &quot;Want help fixing this?&quot; form in their widget. If you submit it, your <b>name, email, the domain you graded, its grade, your consent and the time</b> are stored for that agency, and only that agency can see or export them. The agency decides how to use your details and is responsible for doing so lawfully; StackGrade stores them on the agency's behalf. Leads are kept until the agency deletes them or you ask us to remove them.</p>
 <h2 id="payments">Payments</h2>
-<p>Payments, receipts, refunds and license keys are handled by <b>Gumroad</b>. StackGrade never sees your card details. Gumroad's privacy policy applies to your purchase.</p>
-<p>When you buy, Gumroad notifies the StackGrade API of the sale. We keep a short record to confirm that your license works: a masked email (first letter and domain only), the product, price, plan, sale ID, the last 4 characters of the license key and the result of the license check.</p>
+<p>New purchases are processed by <b>Stripe</b>. StackGrade never sees your card details. Stripe's privacy policy applies to your payment.</p>
+<p>When you buy through Stripe, Stripe notifies the StackGrade API, which issues your license key. We keep a record so the key keeps working: a one-way hash of the key, the product and plan, its status, a masked email (first letter and domain only), the amount and currency, and the Stripe checkout, customer, subscription, payment and invoice IDs. To let support find a lost key, we also keep a one-way hash of your email linked to your key's hash. So the page you return to after checkout can show your key, the key itself is stored with your checkout ID for up to 30 days (shown for the first 24 hours only), then deleted automatically.</p>
+<p>Purchases made earlier through <b>Gumroad</b> were handled by Gumroad, and Gumroad's privacy policy applies to them. For those, Gumroad notifies the StackGrade API of the sale and we keep a short record to confirm that your license works: a masked email (first letter and domain only), the product, price, plan, sale ID, the last 4 characters of the license key and the result of the license check.</p>
 <h2 id="support-requests">Support requests</h2>
 <p>If you use the <b>Contact support</b> form, we store your email, your message, the page you were on and, if you allow it, the last 4 characters of the key you pasted (never the full key). Support requests are deleted automatically after 180 days.</p>
 <h2 id="analytics">Analytics</h2>
@@ -48,7 +49,7 @@
 <h2 id="data-in-your-browser">Data in your browser</h2>
 <p>Your browser keeps Mozilla scan results for an hour. If you use a license, it also keeps the license key, its last check time, your free monitor token and your widget branding. Clearing your site data removes all of them.</p>
 <h2 id="service-providers">Service providers</h2>
-<ul><li>Cloudflare (API hosting and storage)</li><li>GitHub Pages (website hosting)</li><li>Gumroad (payments and license keys)</li><li>GoatCounter (cookieless page-view counts)</li></ul>
+<ul><li>Cloudflare (API hosting and storage)</li><li>GitHub Pages (website hosting)</li><li>Stripe (payments)</li><li>Gumroad (payments and license keys for earlier purchases)</li><li>GoatCounter (cookieless page-view counts)</li></ul>
 <p>We do not sell personal data and show no ads.</p>
 <h2 id="your-choices-and-removal-requests">Your choices and removal requests</h2>
 <p>Use the <a href="/stackgrade/remove/">removal request form</a> to:</p>

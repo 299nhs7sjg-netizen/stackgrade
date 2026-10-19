@@ -99,13 +99,13 @@ Yes. The free widget is one script tag (see [For agencies](https://299nhs7sjg-ne
 
 ### What plans are there?
 
-The grader, the free widget and 1 monitored domain are free. Paid plans are sold through Gumroad, monthly or yearly (yearly costs 10 months):
+The grader, the free widget and 1 monitored domain are free. Paid plans are sold through Stripe, monthly or yearly (yearly costs 10 months):
 
 - **Free**: 1 domain, checked weekly. Alerts in the dashboard and via webhook.
-- **Pro, $19/month or $190/year**: 25 domains, checked daily, with alerts in the dashboard and via webhooks. [Get Pro](https://greenlight5868.gumroad.com/l/xzxoay)
-- **Agency, $49/month or $490/year**: 200 domains checked daily, plus the white-label widget, white-label PDF reports and lead capture. [Get Agency](https://greenlight5868.gumroad.com/l/vmdksq)
-- **Agency+, $99/month or $990/year**: 1,000 domains checked daily, plus everything in Agency. [Get Agency+](https://greenlight5868.gumroad.com/l/ktoyhl)
-- **Agency Kit, $29 one-time**: white-label widget, PDF reports and lead capture, with no monitoring beyond the free domain. [Get the Agency Kit](https://greenlight5868.gumroad.com/l/stackgrade-agency-kit)
+- **Pro, $19/month or $190/year**: 25 domains, checked daily, with alerts in the dashboard and via webhooks. [Monthly](https://buy.stripe.com/eVq5kFcmt115gp8dyOaR209) or [yearly](https://buy.stripe.com/fZuaEZ5Y5cJNeh00M2aR20a)
+- **Agency, $49/month or $490/year**: 200 domains checked daily, plus the white-label widget, white-label PDF reports and lead capture. [Monthly](https://buy.stripe.com/28E5kF5Y5fVZc8S0M2aR20b) or [yearly](https://buy.stripe.com/dRmeVf5Y59xBeh0fGWaR20c)
+- **Agency+, $99/month or $990/year**: 1,000 domains checked daily, plus everything in Agency. [Monthly](https://buy.stripe.com/3cI00ldqxaBFeh07aqaR20d) or [yearly](https://buy.stripe.com/fZuaEZ2LTh03a0KbqGaR20e)
+- **Agency Kit, $29 one-time**: white-label widget, PDF reports and lead capture, with no monitoring beyond the free domain. [Get the Agency Kit](https://buy.stripe.com/dRm7sN86d7ptfl4amCaR208)
 
 Email alerts coming soon; alerts via in-app feed and webhooks today. Compare plans on the [pricing page](https://299nhs7sjg-netizen.github.io/stackgrade/pricing/).
 
@@ -132,21 +132,23 @@ Alerts appear in the [monitoring dashboard](https://299nhs7sjg-netizen.github.io
 Open the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/):
 
 - **Free:** click **Start free**. You get a private token, saved in your browser. Copy it if you want to use it on another device. Each network can create one free monitor per week.
-- **Paid plans:** paste the license key from your Gumroad receipt.
+- **Paid plans:** paste your license key. After a Stripe checkout it is shown on the page you return to; keys bought earlier on Gumroad are in the Gumroad receipt.
 
 Then add your domains. Each domain gets a fixed daily or weekly check time.
 
 ### What happens when I cancel, or my payment fails?
 
-You can cancel a membership in Gumroad at any time. Your plan keeps working until the end of the period you already paid for, then monitoring pauses and white-label features lock. If the end of the period cannot be worked out, access locks when the cancellation is recorded. A membership with a failed payment, or one Gumroad marks as ended, locks right away. So does any purchase that is refunded, charged back or disputed. Licenses are re-checked with Gumroad at least once a day.
+Bought through Stripe: cancel at any time with **Manage billing** in the dashboard (Stripe emails you a sign-in code). Your plan keeps working until the end of the period you already paid for, then monitoring pauses and white-label features lock. If a payment fails, Stripe retries it; the plan locks if Stripe ends the subscription or marks it unpaid. A fully refunded purchase stops working within minutes.
+
+Bought earlier through Gumroad: cancel in Gumroad. The plan keeps working until the end of the paid period. A failed payment, an ended membership, or a refund, chargeback or dispute locks it. Gumroad licenses are re-checked at least once a day.
 
 ### My license key is not accepted. What should I check?
 
 - **Use the key for the right product.** Each plan has its own key. A Pro key works in the monitoring dashboard but does not unlock white-label features.
-- **Copy the whole key.** It has four groups of 8 letters and numbers, like `XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX`. Spaces, line breaks and a "License key:" label are removed automatically.
+- **Copy the whole key.** Stripe keys look like `SG-PRO-XXXX-XXXX-XXXX-XXXX`; Gumroad keys have four groups of 8 letters and numbers, like `XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX`. Spaces, line breaks and a "License key:" label are removed automatically.
 - **Do not use the order number** or receipt ID; they are different from the license key.
 
-You can find the key in your Gumroad receipt email (under "License key") or in your [Gumroad library](https://app.gumroad.com/library). If it still fails, use **Contact support** under the error message, or reply to your Gumroad receipt email.
+A Stripe key is shown on the page you return to after checkout, for 24 hours. Save it, it is your proof of purchase. Lost it? Email support@forthire.com with your Stripe receipt. A Gumroad key is in your Gumroad receipt email (under "License key") or in your [Gumroad library](https://app.gumroad.com/library). If it still fails, use **Contact support** under the error message.
 
 ### Can I upgrade?
 
@@ -154,7 +156,7 @@ Yes. Buy the higher plan and paste its license key. If one key is valid for seve
 
 ### Can I get a refund?
 
-Refunds are handled through Gumroad under Gumroad's refund policy; contact us via the Gumroad product page. A refunded purchase stops working at its next license check (at most a day later).
+Email support@forthire.com with your Stripe receipt. A fully refunded Stripe purchase stops working within minutes. Purchases made earlier on Gumroad follow Gumroad's refund policy; contact us via the Gumroad product page, and a refunded Gumroad purchase stops working at its next license check (at most a day later).
 
 ## White-label widget, PDF reports and lead capture
 
@@ -164,7 +166,7 @@ A **white-label widget** (your logo, name, brand color and call-to-action button
 
 ### How does licensing work?
 
-After purchase, Gumroad emails you a license key. Paste it into the license panel on the [agency-widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), the PDF report dialog, or the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/). Your browser checks the key with Gumroad's public license API, and the StackGrade API checks it again for monitoring and leads. Both re-check at most once a day. You can use the same key on your other devices and browsers by pasting it there too.
+After a Stripe checkout, your license key is shown on the page you return to, and that page activates it in your browser. Paste it into the license panel on the [agency-widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), the PDF report dialog, or the [monitoring dashboard](https://299nhs7sjg-netizen.github.io/stackgrade/app/) on other devices. Your browser checks a Stripe key with the StackGrade API (a Gumroad key with Gumroad's public license API), and the StackGrade API checks it again for monitoring and leads. Both re-check at most once a day. You can use the same key on your other devices and browsers by pasting it there too.
 
 ### What is lead capture?
 
@@ -172,7 +174,7 @@ Turn on **Collect leads** in the widget builder. After a visitor sees their resu
 
 ### Is the white-label widget enforcement secure?
 
-Honestly: only partly. The widget checks your license with Gumroad from the visitor's browser (once per page load) before it removes our branding. Your license key is visible in your page source, and someone who edits the page could bypass the check. Treat it as a convenience check, not DRM, and keep your key to your own sites. Lead capture is checked by the StackGrade API, so it only stores leads for valid licenses.
+Honestly: only partly. The widget checks your license from the visitor's browser (once per page load, with the StackGrade API for Stripe keys or Gumroad for Gumroad keys) before it removes our branding. Your license key is visible in your page source, and someone who edits the page could bypass the check. Treat it as a convenience check, not DRM, and keep your key to your own sites. Lead capture is checked by the StackGrade API, so it only stores leads for valid licenses.
 
 ## Privacy
 

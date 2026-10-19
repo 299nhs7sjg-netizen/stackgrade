@@ -20,7 +20,7 @@ StackGrade does not receive these results and does not keep a record of which do
 Some features use the StackGrade API, a Cloudflare Worker at `api.stackgrade.workers.dev`:
 
 - **Tech-stack scan:** the domain you grade is sent to the API, which fetches that site's public homepage and reads its HTML tags to detect the CMS, analytics and scripts. The result is kept only in short-lived memory (up to 6 hours) to avoid repeat fetches. It is not written to storage.
-- **License checks:** your Gumroad license key is sent to the API and checked with Gumroad. The API stores a one-way hash of the key as your account ID, plus your plan and the time of the last check. It does not store the key itself.
+- **License checks:** your license key is sent to the API, which checks a Gumroad key with Gumroad and a Stripe-issued key against its own records. The API stores a one-way hash of the key as your account ID, plus your plan and the time of the last check. It does not store the key itself.
 - **Monitoring:** for each domain you monitor, the API stores the domain, its latest snapshot (public DNS records, Mozilla Observatory results, detected technologies, expiry date, job board count) and its 25 most recent change events. If you set a webhook URL, it is stored so alerts can be sent to it.
 - **Free monitor token:** the free plan uses a random token instead of a license. To limit abuse, the API stores a salted one-way hash of your network (the first three parts of your IPv4 address, or the IPv6 /48 prefix) for 7 days when you create a free monitor.
 - **Rate limiting:** IP addresses are used briefly in memory to limit request rates. They are not stored.
@@ -31,9 +31,11 @@ Agencies on plans with lead capture can show a "Want help fixing this?" form in 
 
 ## Payments
 
-Payments, receipts, refunds and license keys are handled by **Gumroad**. StackGrade never sees your card details. Gumroad's privacy policy applies to your purchase.
+New purchases are processed by **Stripe**. StackGrade never sees your card details. Stripe's privacy policy applies to your payment.
 
-When you buy, Gumroad notifies the StackGrade API of the sale. We keep a short record to confirm that your license works: a masked email (first letter and domain only), the product, price, plan, sale ID, the last 4 characters of the license key and the result of the license check.
+When you buy through Stripe, Stripe notifies the StackGrade API, which issues your license key. We keep a record so the key keeps working: a one-way hash of the key, the product and plan, its status, a masked email (first letter and domain only), the amount and currency, and the Stripe checkout, customer, subscription, payment and invoice IDs. To let support find a lost key, we also keep a one-way hash of your email linked to your key's hash. So the page you return to after checkout can show your key, the key itself is stored with your checkout ID for up to 30 days (shown for the first 24 hours only), then deleted automatically.
+
+Purchases made earlier through **Gumroad** were handled by Gumroad, and Gumroad's privacy policy applies to them. For those, Gumroad notifies the StackGrade API of the sale and we keep a short record to confirm that your license works: a masked email (first letter and domain only), the product, price, plan, sale ID, the last 4 characters of the license key and the result of the license check.
 
 ## Support requests
 
@@ -51,7 +53,8 @@ Your browser keeps Mozilla scan results for an hour. If you use a license, it al
 
 - Cloudflare (API hosting and storage)
 - GitHub Pages (website hosting)
-- Gumroad (payments and license keys)
+- Stripe (payments)
+- Gumroad (payments and license keys for earlier purchases)
 - GoatCounter (cookieless page-view counts)
 
 We do not sell personal data and show no ads.

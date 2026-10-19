@@ -21,18 +21,18 @@ We may limit or block use that puts the service or other users at risk.
 
 ## Plans, billing and refunds
 
-Paid plans are sold through **Gumroad**:
+Paid plans are sold through **Stripe** (plans bought before October 19, 2026 were sold through Gumroad):
 
 - **Pro, Agency and Agency+** are monthly or yearly memberships.
 - **Agency Kit** is a one-time purchase.
 
-Gumroad handles payment, receipts, cancellations and refunds. **Refunds follow Gumroad's refund policy.** You can cancel a membership in Gumroad at any time. Access continues until the end of the period you paid for, then the plan's features lock. If a purchase is refunded, charged back or disputed, or a membership payment fails, the license stops working.
+Stripe processes payments. You can cancel a Stripe subscription at any time with Manage billing in the dashboard; refund requests go to support@forthire.com. Access continues until the end of the period you paid for, then the plan's features lock. A fully refunded purchase, or a subscription Stripe ends or marks unpaid, stops working. For purchases made through Gumroad, Gumroad handles payment, receipts, cancellations and refunds under its own refund policy, and a refunded, charged back or disputed Gumroad purchase, or a failed membership payment, stops working.
 
 Plan limits (number of domains and check frequency) are listed on the [pricing page](https://299nhs7sjg-netizen.github.io/stackgrade/pricing/). Email alerts are not available yet; alerts are delivered in the dashboard feed and to webhooks.
 
 ## White-label and lead capture
 
-White-label features are checked in the visitor's browser and by our API against your Gumroad license. Your license key appears in your page source when you embed a white-label widget, so keep it to your own sites.
+White-label features are checked in the visitor's browser and by our API against your license (the StackGrade API for Stripe keys, Gumroad for Gumroad keys). Your license key appears in your page source when you embed a white-label widget, so keep it to your own sites.
 
 If you collect leads with the widget, you control that data. You are responsible for having a lawful basis to contact the people who submit the form, and for following anti-spam and privacy laws.
 

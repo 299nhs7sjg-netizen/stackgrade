@@ -4,15 +4,17 @@ The StackGrade Agency Kit is a **$29 one-time purchase** that unlocks a white-la
 
 ## 1. Buy the Agency Kit
 
-Buy it on Gumroad: [Get the Agency Kit, $29](https://greenlight5868.gumroad.com/l/stackgrade-agency-kit). Payment, receipts and refunds are handled by Gumroad.
+Buy it through Stripe: [Get the Agency Kit, $29](https://buy.stripe.com/dRm7sN86d7ptfl4amCaR208). Stripe processes the payment and emails your receipt.
 
 ## 2. Find your license key
 
-Gumroad shows your license key on the purchase confirmation page and in the **receipt email** it sends you. It looks like `XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX`. You can also find it later in your Gumroad library (gumroad.com/library) under the Agency Kit.
+After checkout you return to a StackGrade page that shows your license key, with a copy button. It looks like `SG-KIT-XXXX-XXXX-XXXX-XXXX`. Save this key, it is your proof of purchase. The page shows it for 24 hours. Lost it? Email support@forthire.com with your Stripe receipt.
+
+Bought earlier on Gumroad? Your key is in the Gumroad receipt email and your Gumroad library (gumroad.com/library). It looks like `XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX` and keeps working.
 
 ## 3. Activate it
 
-Open the [agency widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), paste the key into the **License key** box and click **Activate**. Your browser checks the key directly with Gumroad; when it is accepted, the panel turns green and says "Agency Kit license active" (or "Agency license active"). A Pro key is accepted for monitoring but does not unlock white-label features.
+Open the [agency widget page](https://299nhs7sjg-netizen.github.io/stackgrade/agency-widget/), paste the key into the **License key** box and click **Activate**. The page you return to after checkout activates the key in that browser for you. Elsewhere, your browser checks the key (Stripe keys with the StackGrade API, Gumroad keys with Gumroad); when it is accepted, the panel turns green and says "Agency Kit license active" (or "Agency license active"). A Pro key is accepted for monitoring but does not unlock white-label features.
 
 ## 4. Build your white-label widget
 
@@ -36,7 +38,7 @@ Activation is stored in each browser's local storage. On another computer or bro
 
 ## Good to know
 
-- The license is re-checked with Gumroad at most once a day. If Gumroad cannot be reached, an activated browser stays unlocked for up to 7 days.
-- A refunded, charged-back or disputed purchase stops working at the next check. A cancelled Agency membership keeps working until the end of the paid period; a failed or ended membership locks right away.
-- The white-label widget checks your key with Gumroad on every page load and falls back to the free, StackGrade-branded widget if the key is not valid.
-- Questions or refunds: contact the seller through the Gumroad product page. More answers in the [FAQ](https://299nhs7sjg-netizen.github.io/stackgrade/faq/).
+- The license is re-checked at most once a day. If the check cannot be reached, an activated browser stays unlocked for up to 7 days.
+- A fully refunded Stripe purchase stops working at the next check. A cancelled Agency subscription keeps working until the end of the paid period. (Gumroad purchases: a refund, chargeback, dispute, failed payment or ended membership locks the key.)
+- The white-label widget checks your key on every page load and falls back to the free, StackGrade-branded widget if the key is not valid.
+- Questions or refunds: email support@forthire.com with your Stripe receipt (Gumroad purchases: contact the seller through the Gumroad product page). More answers in the [FAQ](https://299nhs7sjg-netizen.github.io/stackgrade/faq/).

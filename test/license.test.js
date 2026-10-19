@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { verifyKey, activate, status, verifyForWidget, _clearWidgetCache, encodeConfig, decodeConfig, cleanBrand, DAY_MS, GRACE_MS, STORE_KEY, checkoutUrl } from '../assets/license.js';
+import { verifyKey, activate, status, verifyForWidget, _clearWidgetCache, encodeConfig, decodeConfig, cleanBrand, DAY_MS, GRACE_MS, STORE_KEY, checkoutUrl, tierCheckout } from '../assets/license.js';
 
 const cfg = { agencyKit: { productId: 'PROD123', checkoutUrl: '' } };
 const inert = { agencyKit: { productId: '', checkoutUrl: '' } };
@@ -112,7 +112,14 @@ test('shipped public config is filled in, https checkout, and not a license-key-
     const { CONFIG } = await import('../assets/config.js');
     assert.ok(CONFIG.agencyKit.productId);
     assert.doesNotMatch(CONFIG.agencyKit.productId, /^[0-9A-F]{8}-[0-9A-F]{8}-[0-9A-F]{8}-[0-9A-F]{8}$/i);
-    assert.match(checkoutUrl(CONFIG), /^https:\/\/[a-z0-9-]+\.gumroad\.com\/l\//);
+    // Stripe is live: every buy target is a live buy.stripe.com link (test links are buy.stripe.com/test_...).
+    assert.equal(CONFIG.stripeCheckout, true);
+    const live = /^https:\/\/buy\.stripe\.com\/(?!test_)[A-Za-z0-9]+$/;
+    assert.match(checkoutUrl(CONFIG), live);
+    for (const t of ['pro', 'agency', 'agencyplus']) { assert.match(tierCheckout(t, CONFIG), live); assert.match(CONFIG.stripe[t].yearly, live); assert.notEqual(CONFIG.stripe[t].yearly, CONFIG.stripe[t].monthly); }
+    // Gumroad keys bought earlier keep verifying: product IDs and the Gumroad fallback links stay in the config.
+    for (const t of ['pro', 'agency', 'agencyplus']) { assert.ok(CONFIG.tiers[t].productId); assert.match(CONFIG.tiers[t].checkoutUrl, /^https:\/\/[a-z0-9-]+\.gumroad\.com\/l\//); }
+    assert.match(checkoutUrl({ ...CONFIG, stripeCheckout: false }), /^https:\/\/[a-z0-9-]+\.gumroad\.com\/l\//);
 });
 
 // ---- Stripe-issued keys (SG-...) go to the StackGrade API, never to Gumroad or Stripe ----

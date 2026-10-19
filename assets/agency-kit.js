@@ -1,6 +1,6 @@
 // Agency Kit UI helpers shared by the result page and the agency-widget page.
 import { status, activate, deactivate, isConfigured, checkoutUrl } from './license.js';
-import { buyLink, plan } from './plans.js';
+import { buyLink, buyLinks, plan } from './plans.js';
 import { keyHelpHtml, wireKeyHelp, autoNormalize } from './keyhelp.js';
 
 export const BRAND_KEY = 'sg-agency-brand';
@@ -20,7 +20,7 @@ export async function renderKitPanel(el, { onUnlock = () => {}, onLock = () => {
     const st = await kitStatus();
     const buy = checkoutUrl();
     if (st.unlocked) {
-        el.innerHTML = `<div class="kit kit-on"><b>${esc(st.plan)} license active.</b> White-label widget and PDF reports${st.leads ? ' and lead capture' : ''} are unlocked on this browser.${st.grace ? ' (Gumroad could not be reached; we will re-check soon.)' : ''} <a href="/stackgrade/app/">Open dashboard</a> <button type="button" class="btn kit-off">Remove license from this browser</button></div>`;
+        el.innerHTML = `<div class="kit kit-on"><b>${esc(st.plan)} license active.</b> White-label widget and PDF reports${st.leads ? ' and lead capture' : ''} are unlocked on this browser.${st.grace ? ' (The license check could not be reached; we will re-check soon.)' : ''} <a href="/stackgrade/app/">Open dashboard</a> <button type="button" class="btn kit-off">Remove license from this browser</button></div>`;
         el.querySelector('.kit-off').onclick = () => { deactivate(); kitStatus(true); renderKitPanel(el, { onUnlock, onLock }); onLock(); };
         return st;
     }
@@ -33,8 +33,8 @@ export async function renderKitPanel(el, { onUnlock = () => {}, onLock = () => {
     const configured = st.configured;
     el.innerHTML = `<div class="kit">
       <p class="kit-h"><span class="pill info">Agency Kit / Agency</span> White-label widget (your logo, colors and call to action, no "Powered by"), white-label PDF reports and lead capture.</p>
-      ${buy ? `<p><a class="btn btn-acc" href="${esc(buy)}" target="_blank" rel="noopener">${BUY_LABEL}</a> ${buyLink('agency', `Agency plan, ${plan('agency').price}`, 'btn')} <span class="d">The Agency Kit is a one-time purchase; Agency adds monitoring of 200 domains. Your license key arrives in the Gumroad receipt. <a href="/stackgrade/pricing/">Compare plans</a></span></p>` : '<p class="kit-soon"><b>Coming soon.</b> Agency Kit is not on sale yet.</p>'}
-      <form class="kit-form" autocomplete="off"><label>License key (Agency Kit, Agency or Agency+) <input type="text" class="kit-key" placeholder="${configured ? 'XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX' : 'Available when Agency Kit launches'}" ${configured ? '' : 'disabled'} spellcheck="false"></label>
+      ${buy ? `<p><a class="btn btn-acc" href="${esc(buy)}" target="_blank" rel="noopener">${BUY_LABEL}</a> ${buyLinks('agency', 'Agency', 'btn')} <span class="d">The Agency Kit is a one-time purchase; Agency adds monitoring of 200 domains. After checkout, the next page shows your license key and activates it. <a href="/stackgrade/pricing/">Compare plans</a></span></p>` : '<p class="kit-soon"><b>Coming soon.</b> Agency Kit is not on sale yet.</p>'}
+      <form class="kit-form" autocomplete="off"><label>License key (Agency Kit, Agency or Agency+) <input type="text" class="kit-key" placeholder="${configured ? 'SG-KIT-XXXX-XXXX-XXXX-XXXX or Gumroad key' : 'Available when Agency Kit launches'}" ${configured ? '' : 'disabled'} spellcheck="false"></label>
       <button class="btn" type="submit" ${configured ? '' : 'disabled'}>Activate</button></form>
       <div class="kit-msgbox" role="status">${st.reason && configured ? `<p class="kit-msg">${esc(st.reason)}</p>` : ''}</div>
     </div>`;
@@ -43,7 +43,7 @@ export async function renderKitPanel(el, { onUnlock = () => {}, onLock = () => {
     form.onsubmit = async (e) => {
         e.preventDefault();
         const box = el.querySelector('.kit-msgbox'); const input = el.querySelector('.kit-key');
-        box.innerHTML = '<p class="kit-msg">Checking your license with Gumroad…</p>';
+        box.innerHTML = '<p class="kit-msg">Checking your license…</p>';
         const r = await activate(input.value);
         if (r.ok) { kitStatus(true); await renderKitPanel(el, { onUnlock, onLock }); onUnlock(); return; }
         if (!r.definitive) { box.innerHTML = `<p class="kit-msg">${esc(r.reason)}</p>`; return; }

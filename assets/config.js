@@ -12,9 +12,9 @@ export const CONFIG = {
     },
     // StackGrade API (Cloudflare Worker, free tier): monitoring, alerts, lead capture, page fingerprinting.
     api: "https://api.stackgrade.workers.dev",
-    // Stripe payment links (live). OFF until stripeCheckout is true: buttons keep pointing at Gumroad until then.
-    // Turn on only after a StackGrade buyer-email sender exists (worker SG_EMAIL_FROM).
-    stripeCheckout: false,
+    // Stripe payment links (live). ON: new purchases go through Stripe; the key is shown on /thanks/.
+    // Gumroad keys bought earlier keep verifying (tiers.*.productId / checkoutUrl stay; checkoutUrl is the fallback when false).
+    stripeCheckout: true,
     stripe: {
         agencyKit: "https://buy.stripe.com/dRm7sN86d7ptfl4amCaR208",
         pro: { monthly: "https://buy.stripe.com/eVq5kFcmt115gp8dyOaR209", yearly: "https://buy.stripe.com/fZuaEZ5Y5cJNeh00M2aR20a" },

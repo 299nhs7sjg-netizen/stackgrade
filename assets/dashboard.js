@@ -1,7 +1,7 @@
 // StackGrade dashboard (/stackgrade/app/): monitors, alerts, webhook and leads, via the StackGrade API.
 import { CONFIG } from './config.js';
 import { activate, status, deactivate, STORE_KEY } from './license.js';
-import { plan, buyLink, PAID, PLAN_FEATURES, ALERTS_NOTE } from './plans.js';
+import { plan, buyLink, buyLinks, PAID, PLAN_FEATURES, ALERTS_NOTE } from './plans.js';
 import { keyHelpHtml, wireKeyHelp, autoNormalize } from './keyhelp.js';
 
 const API = CONFIG.api;
@@ -62,8 +62,8 @@ function renderPlan() {
 }
 function upsellHtml(tier) {
     const higher = PAID.filter((t) => ['free', 'agencykit'].includes(tier) || (tier === 'pro' && t !== 'pro') || (tier === 'agency' && t === 'agencyplus'));
-    const cards = higher.map((t) => { const p = plan(t); return p.checkout ? `<div class="pcard"><h3>${esc(p.name)}</h3><p class="pprice">$${p.monthly}<small>/mo</small> <span class="d">or $${p.yearly}/yr</span></p><ul>${PLAN_FEATURES[t].map((f) => `<li>${esc(f)}</li>`).join('')}</ul>${buyLink(t, `Get ${p.name}`)}</div>` : ''; }).join('');
-    return cards ? `<h2>Upgrade</h2><div class="pcards">${cards}</div><p class="d">After buying, paste the license key from your Gumroad receipt above (Use a license key). ${esc(ALERTS_NOTE)} <a href="/stackgrade/pricing/">Compare plans</a></p>` : '';
+    const cards = higher.map((t) => { const p = plan(t); return p.checkout ? `<div class="pcard"><h3>${esc(p.name)}</h3><p class="pprice">$${p.monthly}<small>/mo</small> <span class="d">or $${p.yearly}/yr</span></p><ul>${PLAN_FEATURES[t].map((f) => `<li>${esc(f)}</li>`).join('')}</ul>${buyLinks(t, p.name)}</div>` : ''; }).join('');
+    return cards ? `<h2>Upgrade</h2><div class="pcards">${cards}</div><p class="d">After checkout, the next page shows your new license key and activates it here. On another device, paste it above (Use a license key). ${esc(ALERTS_NOTE)} <a href="/stackgrade/pricing/">Compare plans</a></p>` : '';
 }
 
 function snapSummary(s) {
@@ -109,7 +109,7 @@ async function loadLeads() {
 
 $('#licform').addEventListener('submit', async (e) => {
     e.preventDefault();
-    msg($('#signin-msg'), 'Checking your license with Gumroad…', true);
+    msg($('#signin-msg'), 'Checking your license…', true);
     const r = await activate($('#lickey').value);
     if (!r.ok) { if (r.definitive) showKeyHelp(r.reason); else msg($('#signin-msg'), r.reason); return; }
     start();

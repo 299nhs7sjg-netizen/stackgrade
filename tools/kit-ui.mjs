@@ -19,7 +19,7 @@ async function mocked(ctx) {
     const gum = []; p.on('response', (r) => { if (r.url().includes('api.gumroad.com')) gum.push(r.status()); });
     await p.goto(BASE + 'agency-widget/'); await p.waitForSelector('#kithero a, #kithero span');
     ok('hero CTA text', (await p.textContent('#kithero')).includes('Get the Agency Kit, $29'));
-    ok('hero CTA href', (await p.getAttribute('#kithero a', 'href')) === 'https://greenlight5868.gumroad.com/l/stackgrade-agency-kit');
+    ok('hero CTA href', (await p.getAttribute('#kithero a', 'href')) === 'https://buy.stripe.com/dRm7sN86d7ptfl4amCaR208');
     ok('panel CTA', (await p.textContent('#kitpanel')).includes('Get the Agency Kit, $29'));
     ok('no Coming soon', !(await p.textContent('body')).includes('Coming soon'));
     ok('paid fields disabled', await p.$eval('input[name=logo]', (e) => e.disabled));
@@ -78,7 +78,7 @@ async function mocked(ctx) {
     const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true }); const p = await ctx.newPage();
     await p.goto(`${BASE}?d=${DOMAIN}`); await p.waitForSelector('.rerun', { timeout: 150000 });
     ok('inline upsell near PDF', (await p.textContent('.kitbuy-inline')) === 'Get the Agency Kit, $29');
-    ok('inline Agency upsell', (await p.locator('.kitbuy-inline').nth(1).getAttribute('href')) === 'https://greenlight5868.gumroad.com/l/vmdksq');
+    ok('inline Agency upsell', (await p.locator('.kitbuy-inline').nth(1).getAttribute('href')) === 'https://buy.stripe.com/28E5kF5Y5fVZc8S0M2aR20b');
     const pu = await p.textContent('.plan-upsell');
     ok('plan upsell: free monitor + prices + alerts note', pu.includes('Monitor 1 domain free') && pu.includes('$19/mo or $190/yr') && pu.includes('$49/mo or $490/yr') && pu.includes('$99/mo or $990/yr') && pu.includes('Email alerts coming soon; alerts via in-app feed and webhooks today'), pu);
     ok('tech card uses API fingerprint', (await p.textContent('#result')).includes('StackGrade API') || (await p.textContent('#result')).includes('Page fingerprinting not checked'));

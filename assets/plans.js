@@ -19,6 +19,14 @@ export function plan(tier) {
     return { tier, name: TIERS[tier]?.name, monthly: t.monthly, yearly: t.yearly, price: t.monthly ? `$${t.monthly}/mo or $${t.yearly}/yr` : '', checkout: https(st ? st[tier]?.monthly : t.checkoutUrl), checkoutYearly: st ? https(st[tier]?.yearly) : '' };
 }
 export const PAID = ['pro', 'agency', 'agencyplus'];
+// Monthly + yearly buttons for a subscription plan (one button when there is no yearly link).
+export function buyLinks(tier, name, cls = 'btn btn-acc') {
+    const p = plan(tier);
+    if (!p.checkout) return '';
+    if (!p.checkoutYearly) return buyLink(tier, `Get ${name || p.name}, ${p.price}`, cls);
+    const c2 = cls.replace('btn-acc', '').trim() || 'btn';
+    return `<a class="${cls}" href="${esc(p.checkout)}" target="_blank" rel="noopener">${esc(`${name || p.name} monthly, $${p.monthly}`)}</a> <a class="${c2}" href="${esc(p.checkoutYearly)}" target="_blank" rel="noopener">${esc(`Yearly, $${p.yearly}`)}</a>`;
+}
 export function buyLink(tier, label, cls = 'btn btn-acc') {
     const p = plan(tier);
     return p.checkout ? `<a class="${cls}" href="${esc(p.checkout)}" target="_blank" rel="noopener">${esc(label || `Get ${p.name}, ${p.price}`)}</a>` : '';

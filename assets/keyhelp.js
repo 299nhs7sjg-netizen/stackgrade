@@ -20,11 +20,11 @@ export function keyHelpHtml(reason, { page = '' } = {}) {
   ${nf ? `<p>Common causes:</p>
   <ul>
     <li><b>Key from a different product.</b> Each StackGrade plan has its own key. Pro keys work in the dashboard but do not unlock white-label features; Agency, Agency+ and Agency Kit keys do.</li>
-    <li><b>Extra characters.</b> We remove spaces and line breaks automatically, but check that the whole key was copied: four groups of 8 letters and numbers, like <code>XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX</code>.</li>
+    <li><b>Extra characters.</b> We remove spaces and line breaks automatically, but check that the whole key was copied: Stripe keys look like <code>SG-PRO-XXXX-XXXX-XXXX-XXXX</code>, Gumroad keys are four groups of 8 letters and numbers, like <code>XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX</code>.</li>
     <li><b>Order number or receipt ID instead of the key.</b> The receipt also shows an order number; that is not the license key.</li>
   </ul>
-  <p><b>Where to find your key:</b> open your Gumroad receipt email and look for <b>License key</b>, or go to your <a href="https://app.gumroad.com/library" target="_blank" rel="noopener">Gumroad library</a>, open the StackGrade product, and copy the key shown there.</p>` : ''}
-  <p>Still stuck? <button type="button" class="btn kh-open">Contact support</button> or reply to your Gumroad receipt email (it reaches the seller), or use the <a href="${esc(seller)}" target="_blank" rel="noopener">seller's Gumroad page</a>.</p>
+  <p><b>Where to find your key:</b> a Stripe purchase shows the key on the page you return to after checkout (for 24 hours). Lost it? Email support@forthire.com with your Stripe receipt. A Gumroad purchase has the key in the Gumroad receipt email under <b>License key</b>, or in your <a href="https://app.gumroad.com/library" target="_blank" rel="noopener">Gumroad library</a>.</p>` : ''}
+  <p>Still stuck? <button type="button" class="btn kh-open">Contact support</button> or email support@forthire.com. Bought on Gumroad? You can also reply to your Gumroad receipt email or use the <a href="${esc(seller)}" target="_blank" rel="noopener">seller's Gumroad page</a>.</p>
   <form class="kh-form builder" hidden autocomplete="off">
     <label>Your email (so we can reply) <input type="email" name="email" required maxlength="200"></label>
     <label>What happened? <textarea name="message" required minlength="5" maxlength="2000" rows="3"></textarea></label>
@@ -49,8 +49,8 @@ export function wireKeyHelp(root, { getKey = () => '', reason = '', page = '' } 
             const r = await fetch(`${CONFIG.api}/v1/support`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: form.email.value, message: form.message.value, keyLast4: form.sendLast4.checked && k ? k.slice(-4) : '', page, reason: String(reason).slice(0, 300), website: form.website.value, elapsedMs: Date.now() - opened }) });
             const j = await r.json().catch(() => ({}));
             if (r.ok) { form.innerHTML = `<p class="kit-on" style="padding:8px">${esc(j.message || 'Thanks, we got your message.')}</p>`; }
-            else status.textContent = `${j.error || `Could not send (HTTP ${r.status}).`} You can also reply to your Gumroad receipt email.`;
-        } catch { status.textContent = 'Could not reach the StackGrade API. Please reply to your Gumroad receipt email instead.'; }
+            else status.textContent = `${j.error || `Could not send (HTTP ${r.status}).`} You can also email support@forthire.com.`;
+        } catch { status.textContent = 'Could not reach the StackGrade API. Please email support@forthire.com instead.'; }
     };
 }
 

@@ -121,7 +121,7 @@ function planCard(t, hl = false) {
     const p = plan(t);
     const price = t === 'free' ? '<p class="pprice">$0</p>' : t === 'agencykit' ? '<p class="pprice">$29<small> one-time</small></p>' : `<p class="pprice">$${p.monthly}<small>/mo</small></p><p class="d">or $${p.yearly}/yr (2 months free)</p>`;
     const name = t === 'free' ? 'Free' : p.name;
-    const cta = t === 'free' ? `<a class="btn" href="${P}app/">Start free</a>` : p.checkout ? `<a class="btn btn-acc" href="${esc(p.checkout)}" target="_blank" rel="noopener">Get ${esc(name)}${p.checkoutYearly ? ' monthly' : ''}</a>${p.checkoutYearly ? ` <a class="btn" href="${esc(p.checkoutYearly)}" target="_blank" rel="noopener">Yearly</a>` : ''}` : '<p class="d">Coming soon</p>';
+    const cta = t === 'free' ? `<a class="btn" href="${P}app/">Start free</a>` : p.checkout ? `<a class="btn btn-acc" href="${esc(p.checkout)}" target="_blank" rel="noopener">Get ${esc(name)}${p.checkoutYearly ? ' monthly' : ''}</a>${p.checkoutYearly ? ` <a class="btn" href="${esc(p.checkoutYearly)}" target="_blank" rel="noopener">Yearly, $${p.yearly}</a>` : ''}` : '<p class="d">Coming soon</p>';
     return `<div class="pcard${hl ? ' hl' : ''}"><h3>${esc(name)}</h3>${price}<ul>${PLAN_FEATURES[t].map((f) => `<li>${esc(f)}</li>`).join('')}</ul>${cta}</div>`;
 }
 function planStrip(tiers) { return `<div class="pcards">${tiers.map((t) => planCard(t, t === 'agency')).join('')}</div><p class="d">${esc(ALERTS_NOTE)} <a href="${P}pricing/">Compare all plans</a></p>`; }
@@ -262,7 +262,7 @@ ${planStrip(['agencykit', 'agency', 'agencyplus'])}
 <p><b>Preview</b></p>
 <iframe id="wlprev" title="Widget preview" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff"></iframe>
 <h3>How the white-label check works (honest version)</h3>
-<p>A white-label snippet carries your Gumroad license key (<code>data-license</code>) and your branding (<code>data-config</code>, with a checksum that catches copy/paste damage, not a real signature). On each page load the widget asks Gumroad's public license API whether the key is valid and not refunded, disputed or cancelled, and only then shows your logo and button and hides "Powered by". If the check fails, the widget falls back to the free version. Because this runs in the visitor's browser, your key is visible in your page source and a determined person could bypass it. It is a fair-use check, not DRM.</p>
+<p>A white-label snippet carries your license key (<code>data-license</code>) and your branding (<code>data-config</code>, with a checksum that catches copy/paste damage, not a real signature). On each page load the widget checks whether the key is valid and not refunded or cancelled (the StackGrade API for Stripe keys, Gumroad's public license API for Gumroad keys), and only then shows your logo and button and hides "Powered by". If the check fails, the widget falls back to the free version. Because this runs in the visitor's browser, your key is visible in your page source and a determined person could bypass it. It is a fair-use check, not DRM.</p>
 <h2>3. Live demo</h2>
 <iframe src="${demoSrc}" title="StackGrade widget demo" style="width:100%;height:760px;border:1px solid #e2e8f0;border-radius:12px;background:#fff" loading="lazy"></iframe>
 <h2>Privacy</h2>
@@ -332,7 +332,7 @@ const kitMd = mdToHtml(fs.readFileSync(path.join(ROOT, 'docs/AGENCY-KIT-SETUP.md
 const kitIntro = kitMd.html.match(/^<p>[\s\S]*?<\/p>/)?.[0] || '';
 add({ slug: 'agency-kit/', og: 'widget', showHow: false,
     title: 'Agency Kit setup guide: white-label widget and PDF reports | StackGrade',
-    desc: 'Set up the StackGrade Agency Kit ($29 one-time): buy on Gumroad, find your license key, activate it, build a white-label audit widget and export white-label PDF reports.',
+    desc: 'Set up the StackGrade Agency Kit ($29 one-time): buy it, save your license key, activate it, build a white-label audit widget and export white-label PDF reports.',
     body: `<section class="hero"><h1>${esc(kitMd.h1)}</h1>${kitIntro.replace('<p>', '<p class="sub">')}
 <p><a class="btn btn-acc" href="${KIT_URL}" target="_blank" rel="noopener">Get the Agency Kit, $29</a></p></section>
 <section class="seo faqdoc">${kitMd.html.replace(/^<p>[\s\S]*?<\/p>/, '')}</section>` });
@@ -349,9 +349,10 @@ add({ slug: 'pricing/', og: 'home', showHow: false,
 <h2>One-time option for widgets</h2>
 <div class="pcards" style="max-width:360px">${planCard('agencykit')}</div>
 <h2>How buying works</h2>
-<ul><li>Checkout is handled by <b>Gumroad</b>. Pick monthly or yearly on the Gumroad page. Your <b>license key</b> is in the Gumroad receipt.</li>
+<ul><li>Checkout is handled by <b>Stripe</b>. Pick the monthly or yearly button. After paying you return to a page that shows your <b>license key</b> and activates it in that browser. Save the key, it is your proof of purchase.</li>
 <li>Paste the key in the <a href="${P}app/">monitoring dashboard</a> (all plans) or the <a href="${P}agency-widget/">widget builder</a> (white-label plans).</li>
-<li>Cancel any time in Gumroad. Your plan keeps working until the end of the period you paid for. Refunds follow Gumroad's refund policy; a refunded, charged-back or disputed purchase stops working.</li>
+<li>Cancel any time with <a href="${esc(CONFIG.billingPortalUrl)}" target="_blank" rel="noopener">Manage billing</a> (Stripe emails you a sign-in code). Your plan keeps working until the end of the period you paid for. Refund requests: support@forthire.com with your Stripe receipt. A fully refunded purchase stops working.</li>
+<li>Bought earlier on Gumroad? Your Gumroad key keeps working; manage that membership in Gumroad.</li>
 <li>If one key covers several products, the highest plan applies.</li></ul>
 <h2>Limits, honestly</h2>
 <ul><li>Checks use public sources (DNS-over-HTTPS, Mozilla HTTP Observatory, registry RDAP, public job boards). If a source fails, that part is marked "not checked" and never reported as a change.</li>
@@ -378,7 +379,7 @@ add({ slug: 'app/', og: 'home', showHow: false, noindex: true,
 <div id="signin" hidden>
 <h2>Start monitoring</h2>
 <p><button class="btn btn-acc" type="button" id="freebtn">Start free (1 domain, weekly)</button> <span class="d">No signup. You get a private token stored in this browser.</span></p>
-<form id="licform" class="dashform" autocomplete="off"><label for="lickey">License key (Pro, Agency, Agency+ or Agency Kit)</label><input type="text" id="lickey" placeholder="XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX" spellcheck="false" required><button class="btn" type="submit">Use license key</button></form>
+<form id="licform" class="dashform" autocomplete="off"><label for="lickey">License key (Pro, Agency, Agency+ or Agency Kit)</label><input type="text" id="lickey" placeholder="SG-PRO-XXXX-XXXX-XXXX-XXXX or Gumroad key" spellcheck="false" required><button class="btn" type="submit">Use license key</button></form>
 <form id="freeform" class="dashform" autocomplete="off"><label for="freetok">Have a free token from another device?</label><input type="text" id="freetok" placeholder="sgf_…" spellcheck="false" required><button class="btn" type="submit">Use token</button></form>
 <div id="signin-msg" role="status"></div>
 ${planStrip(PAID)}
@@ -405,8 +406,8 @@ ${planStrip(PAID)}
 
 // ---- terms / privacy / removal ----
 for (const [slug, file, title, desc] of [
-    ['terms/', 'TERMS.md', 'Terms of service | StackGrade', 'Terms for the StackGrade grader, widget, monitoring dashboard and API: acceptable use, plans and refunds via Gumroad, availability and liability.'],
-    ['privacy/', 'PRIVACY.md', 'Privacy policy | StackGrade', 'What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Gumroad, removal requests.'],
+    ['terms/', 'TERMS.md', 'Terms of service | StackGrade', 'Terms for the StackGrade grader, widget, monitoring dashboard and API: acceptable use, plans, billing and refunds, availability and liability.'],
+    ['privacy/', 'PRIVACY.md', 'Privacy policy | StackGrade', 'What StackGrade handles: checks run in your browser, homepage fetches for the tech scan, monitoring data and leads in Cloudflare KV, payments by Stripe (earlier purchases by Gumroad), removal requests.'],
 ]) {
     const md = mdToHtml(fs.readFileSync(path.join(ROOT, 'docs', file), 'utf8'));
     add({ slug, og: 'home', showHow: false, title, desc, body: `<section class="hero"><h1>${esc(md.h1)}</h1></section><section class="seo faqdoc">${md.html}</section>` });
@@ -452,7 +453,7 @@ Link to a result: ${SITE}?d=example.com
 - [Security headers checker](${SITE}security-headers-checker/): HTTPS redirect, HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, cookies
 - [Agency widget](${SITE}agency-widget/): free embeddable grader with "Powered by StackGrade"; Agency Kit ($29 one-time) or the Agency plans add a white-label widget, PDF reports and lead capture
 - [Badge](${SITE}badge/): "Graded A/B" SVG badge for listed domains
-- [Agency Kit setup guide](${SITE}agency-kit/): buy, activate the Gumroad license key, build the white-label widget, export PDFs
+- [Agency Kit setup guide](${SITE}agency-kit/): buy, save and activate the license key, build the white-label widget, export PDFs
 - [FAQ](${SITE}faq/): grading, each check, fixes, Not checked / Partial grade, badges, widget, plans, monitoring, Agency Kit licensing, privacy
 - [Pricing](${SITE}pricing/): Free (1 domain weekly), Pro $${CONFIG.tiers.pro.monthly}/mo or $${CONFIG.tiers.pro.yearly}/yr (25 domains daily), Agency $${CONFIG.tiers.agency.monthly}/mo or $${CONFIG.tiers.agency.yearly}/yr (200 domains daily, white-label, lead capture), Agency+ $${CONFIG.tiers.agencyplus.monthly}/mo or $${CONFIG.tiers.agencyplus.yearly}/yr (1,000 domains daily), Agency Kit $29 one-time. ${ALERTS_NOTE}
 - [Monitoring dashboard](${SITE}app/): monitored domains, change alerts, webhooks, leads
