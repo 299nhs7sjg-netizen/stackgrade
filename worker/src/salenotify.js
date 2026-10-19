@@ -19,11 +19,11 @@ export async function bumpTotals(env, s, now) {
 }
 const fmtTot = (t) => `${t.n} sale${t.n === 1 ? '' : 's'}, ${t.refunds} refund${t.refunds === 1 ? '' : 's'}, net ${Object.entries(t.cents).map(([c, v]) => money(v, c)).join(' + ') || '$0.00'}`;
 export function renderSaleEmail(s, { now, totals, brand }) {
-  const kind = isRefund(s) ? 'Refund' : s.resource === 'sale' ? 'Sale' : s.resource.charAt(0).toUpperCase() + s.resource.slice(1);
+  const kind = s.label || (isRefund(s) ? 'Refund' : s.resource === 'sale' ? 'Sale' : s.resource.charAt(0).toUpperCase() + s.resource.slice(1));
   const product = s.productName || s.productPermalink || s.productId || 'unknown product';
   const subject = `${s.test ? '[TEST] ' : ''}${kind}: ${product} ${money(s.price, s.currency)}`;
   const text = [`${kind}: ${product}`, `Brand: ${brand}`, `Amount: ${money(s.price, s.currency)}`, `Currency: ${String(s.currency || '').toUpperCase()}`, `Test: ${s.test ? 'yes' : 'no'}`,
-    s.recurrence ? `Recurrence: ${s.recurrence}${s.isRecurringCharge ? ' (renewal)' : ''}` : '', `Buyer: ${String(s.email || '').slice(0, 1) || '?'}.`, `Time: ${ctTime(now)}`, '',
+    s.recurrence ? `Recurrence: ${s.recurrence}${s.isRecurringCharge ? ' (renewal)' : ''}` : '', `Buyer: ${String(s.email || '').slice(0, 1) || '?'}.`, `Time: ${ctTime(now)}`, ...(s.extra || []), '',
     totals ? `Today (CT, real sales only): ${fmtTot(totals.day)}` : '', totals ? `Month to date: ${fmtTot(totals.month)}` : ''].filter((x) => x !== '').join('\n');
   return { subject, text };
 }

@@ -224,3 +224,88 @@ test('admin stripe-key: support finds and reissues the same key by email, sessio
     assert.equal((await adm({})).status, 400);
     assert.ok(![...env.KV.m.keys(), ...env.KV.m.values()].some((k) => k.includes('lost@example.com')), 'email not stored in KV keys');
 });
+
+// ---- disputes ----
+const dispute = (o = {}) => ({ id: `dp_${Math.random().toString(36).slice(2)}`, object: 'dispute', amount: 299, currency: 'usd', charge: 'ch_d', payment_intent: 'pi_d', reason: 'fraudulent', status: 'needs_response', livemode: false, ...o });
+const dEv = (type, d) => ({ id: `evt_${type}_${d.id}_${d.status}`, type, livemode: d.livemode, data: { object: d } });
+
+test('dispute (sandbox one-time): created suspends the key, [TEST] Dispute alert once; closed won restores it, [TEST] Dispute closed', async () => {
+    const env = envBase(); const s = session({ payment_intent: 'pi_d' });
+    await signed(env, completed(s));
+    const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
+    const d = dispute();
+    const r = await signed(env, dEv('charge.dispute.created', d));
+    assert.equal(r.status, 200); assert.equal(r.body.dispute, 'suspended');
+    let u = await call(env, 'POST', '/v1/unlock', { body: { product: 'snapfit', key } });
+    assert.equal(u.status, 403); assert.match(u.body.error, /suspended while a payment dispute is open/);
+    const v = await call(env, 'POST', '/v1/stripe/verify', { body: { key } }); assert.equal(v.status, 403); assert.equal(v.body.definitive, true); assert.equal(v.body.suspended, true);
+    await signed(env, { ...dEv('charge.dispute.created', d), id: 'evt_retry' });   // Stripe retry: same alert idempotency key
+    const opened = mails.filter((m) => /^\[TEST\] Dispute: SnapFit lifetime unlock \$2\.99$/.test(m.subject));
+    assert.equal(new Set(opened.map((m) => m.idem)).size, 1); assert.equal(opened[0].idem, `sale-${d.id}-stripe_dispute`);
+    assert.match(opened[0].text, /Key: suspended/); assert.match(opened[0].text, /Reason: fraudulent/); assert.match(opened[0].text, /Test: yes/);
+    const c = await signed(env, dEv('charge.dispute.closed', { ...d, status: 'won' }));
+    assert.equal(c.body.dispute, 'restored');
+    u = await call(env, 'POST', '/v1/unlock', { body: { product: 'snapfit', key } }); assert.equal(u.status, 200);
+    const closed = mails.find((m) => /^\[TEST\] Dispute closed: SnapFit lifetime unlock/.test(m.subject));
+    assert.ok(closed); assert.match(closed.text, /Status: won/); assert.match(closed.text, /Key: restored/);
+    assert.ok(!mails.some((m) => /Refund/.test(m.subject)), 'a dispute is not reported as a refund');
+});
+
+test('dispute (live Agency Kit): lost revokes the key and pauses the monitoring account; live alert has no [TEST]', async () => {
+    const env = envBase();
+    const s = session({ id: 'cs_live_kitdisputeaaaaaaaa', livemode: true, payment_link: 'plink_L_KIT', amount_total: 2900, payment_intent: 'pi_kit' });
+    await signed(env, completed(s));
+    const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
+    assert.equal((await call(env, 'POST', '/v1/license/verify', { body: { key } })).status, 200);
+    const acctKey = [...env.KV.m.keys()].find((k) => k.startsWith('acct:L'));
+    assert.equal(JSON.parse(env.KV.m.get(acctKey).value ?? env.KV.m.get(acctKey)).lic.ok, true);
+    // a sandbox dispute on the same payment intent never touches a live key
+    assert.match((await signed(env, dEv('charge.dispute.created', dispute({ payment_intent: 'pi_kit' })))).body.skipped, /no matching key/);
+    const d = dispute({ payment_intent: 'pi_kit', amount: 2900, livemode: true });
+    await signed(env, dEv('charge.dispute.created', d));
+    const acct = () => { const x = env.KV.m.get(acctKey); return JSON.parse(x.value ?? x); };
+    assert.equal(acct().lic.ok, false, 'scheduled checks pause without waiting for a sign-in'); assert.match(acct().lic.reason, /suspended/);
+    let v = await call(env, 'POST', '/v1/license/verify', { body: { key } }); assert.equal(v.status, 403); assert.match(v.body.error, /suspended/);
+    const c = await signed(env, dEv('charge.dispute.closed', { ...d, status: 'lost' }));
+    assert.equal(c.body.dispute, 'revoked');
+    v = await call(env, 'POST', '/v1/license/verify', { body: { key } }); assert.equal(v.status, 403); assert.match(v.body.error, /decided in the cardholder's favor/);
+    assert.ok(mails.some((m) => m.subject === 'Dispute: StackGrade Agency Kit $29.00'));
+    assert.ok(mails.some((m) => m.subject === 'Dispute closed: StackGrade Agency Kit $29.00' && /Status: lost/.test(m.text) && /Key: revoked/.test(m.text)));
+    assert.equal(env.KV.m.has(`saletot:${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })}`) ? JSON.parse(env.KV.m.get(`saletot:${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })}`).value ?? env.KV.m.get(`saletot:${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' })}`)).refunds : 0, 0, 'disputes are not counted as refunds in totals');
+});
+
+test('dispute on a subscription charge: unmatched alert with the support command; admin suspend, closing event restores; renewals do not clear it', async () => {
+    const env = { ...envBase(), ADMIN_KEY: 'adm_test' };
+    const s = session({ payment_link: 'plink_T_PRO_M', amount_total: 1900, subscription: 'sub_d', payment_intent: null, invoice: 'in_d', customer: 'cus_d' });
+    await signed(env, completed(s));
+    const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
+    const d = dispute({ payment_intent: 'pi_renewal_unknown', amount: 1900 });
+    const r = await signed(env, dEv('charge.dispute.created', d));
+    assert.match(r.body.skipped, /no matching key/);
+    const m = mails.find((x) => /^\[TEST\] Dispute: unmatched Stripe payment \$19\.00$/.test(x.subject));
+    assert.ok(m); assert.match(m.text, /NOT matched/); assert.ok(m.text.includes(`"action": "suspend", "dispute": "${d.id}"`));
+    assert.equal((await call(env, 'POST', '/v1/stripe/verify', { body: { key } })).status, 200, 'unmatched: nothing changed');
+    const adm = (body) => call(env, 'POST', '/v1/admin/stripe-key', { body, headers: { authorization: 'Bearer adm_test' } });
+    assert.equal((await adm({ subscription: 'sub_d', action: 'delete' })).status, 400);
+    const a = await adm({ subscription: 'sub_d', action: 'suspend', dispute: d.id });
+    assert.equal(a.status, 200); assert.deepEqual(a.body.keys[0].disputes, { [d.id]: 'open' });
+    assert.equal((await call(env, 'POST', '/v1/stripe/verify', { body: { key } })).status, 403);
+    assert.equal((await adm({ dispute: d.id })).body.keys[0].key, key, 'lookup by dispute id');
+    await signed(env, { id: 'evt_ud', type: 'customer.subscription.updated', livemode: false, data: { object: { id: 'sub_d', status: 'active', cancel_at_period_end: false, items: { data: [{ price: { id: 'price_T_PRO_M' } }] } } } });
+    assert.equal((await call(env, 'POST', '/v1/stripe/verify', { body: { key } })).status, 403, 'a subscription update does not lift the suspension');
+    const c = await signed(env, dEv('charge.dispute.closed', { ...d, status: 'won' }));
+    assert.equal(c.body.dispute, 'restored', 'the closing event finds the key support suspended');
+    assert.equal((await call(env, 'POST', '/v1/stripe/verify', { body: { key } })).status, 200);
+    await adm({ subscription: 'sub_d', action: 'revoke' });
+    assert.equal((await call(env, 'POST', '/v1/stripe/verify', { body: { key } })).status, 403);
+    await adm({ subscription: 'sub_d', action: 'restore' });
+    assert.equal((await call(env, 'POST', '/v1/stripe/verify', { body: { key } })).status, 200, 'support restore clears a manual revoke');
+});
+
+test('admin stripe-key action needs exactly one key', async () => {
+    const env = { ...envBase(), ADMIN_KEY: 'adm_test' };
+    await signed(env, completed(session({ customer: 'cus_two', payment_intent: 'pi_a' })));
+    await signed(env, completed(session({ customer: 'cus_two', payment_intent: 'pi_b' })));
+    const r = await call(env, 'POST', '/v1/admin/stripe-key', { body: { customer: 'cus_two', action: 'suspend' }, headers: { authorization: 'Bearer adm_test' } });
+    assert.equal(r.status, 409); assert.match(r.body.error, /exactly one/);
+});
