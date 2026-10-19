@@ -7,7 +7,7 @@ import { plan, PLAN_FEATURES, PAID, ALERTS_NOTE } from '../assets/plans.js';
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const SITE = 'https://299nhs7sjg-netizen.github.io/stackgrade/';
 const P = '/stackgrade/';
-const KIT_URL = CONFIG.agencyKit.checkoutUrl;
+const KIT_URL = CONFIG.stripeCheckout ? CONFIG.stripe.agencyKit : CONFIG.agencyKit.checkoutUrl;
 const TODAY = new Date().toISOString().slice(0, 10);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -121,7 +121,7 @@ function planCard(t, hl = false) {
     const p = plan(t);
     const price = t === 'free' ? '<p class="pprice">$0</p>' : t === 'agencykit' ? '<p class="pprice">$29<small> one-time</small></p>' : `<p class="pprice">$${p.monthly}<small>/mo</small></p><p class="d">or $${p.yearly}/yr (2 months free)</p>`;
     const name = t === 'free' ? 'Free' : p.name;
-    const cta = t === 'free' ? `<a class="btn" href="${P}app/">Start free</a>` : p.checkout ? `<a class="btn btn-acc" href="${esc(p.checkout)}" target="_blank" rel="noopener">Get ${esc(name)}</a>` : '<p class="d">Coming soon</p>';
+    const cta = t === 'free' ? `<a class="btn" href="${P}app/">Start free</a>` : p.checkout ? `<a class="btn btn-acc" href="${esc(p.checkout)}" target="_blank" rel="noopener">Get ${esc(name)}${p.checkoutYearly ? ' monthly' : ''}</a>${p.checkoutYearly ? ` <a class="btn" href="${esc(p.checkoutYearly)}" target="_blank" rel="noopener">Yearly</a>` : ''}` : '<p class="d">Coming soon</p>';
     return `<div class="pcard${hl ? ' hl' : ''}"><h3>${esc(name)}</h3>${price}<ul>${PLAN_FEATURES[t].map((f) => `<li>${esc(f)}</li>`).join('')}</ul>${cta}</div>`;
 }
 function planStrip(tiers) { return `<div class="pcards">${tiers.map((t) => planCard(t, t === 'agency')).join('')}</div><p class="d">${esc(ALERTS_NOTE)} <a href="${P}pricing/">Compare all plans</a></p>`; }
@@ -360,6 +360,15 @@ add({ slug: 'pricing/', og: 'home', showHow: false,
 </section>` });
 
 // ---- monitoring dashboard ----
+add({ slug: 'thanks/', og: 'home', showHow: false, noindex: true,
+    title: 'Thanks for your purchase | StackGrade',
+    desc: 'Your StackGrade key.',
+    body: `<section class="hero"><h1>Thank you</h1><p class="sub" id="ty-msg" role="status">Loading…</p></section>
+<section class="seo dash"><div id="ty-box" hidden><h2>Your key</h2><p><code id="ty-key"></code> <button class="btn" type="button" id="ty-copy">Copy</button></p><p class="d" id="ty-act"></p>
+<p><a class="btn btn-acc" href="${P}app/">Open the dashboard</a> <a class="btn" href="${P}agency-widget/">Build your white-label widget</a></p></div>
+<p class="d">Lost the email? Contact support from the <a href="${P}faq/">FAQ</a>.</p></section>
+<script type="module" src="${P}assets/thanks.js"></script>`,
+});
 add({ slug: 'app/', og: 'home', showHow: false, noindex: true,
     title: 'StackGrade monitoring dashboard',
     desc: 'Monitor domains for SPF, DMARC, DKIM, MX, security header, tech stack, expiry and hiring changes. Alerts in the dashboard and via webhooks.',

@@ -123,7 +123,7 @@ export async function fulfillSession(env, session, { now = Date.now(), fetchImpl
     } else out.buyerEmail = { sent: false, reason: email ? `${entry.kind === 'gt' ? 'GT' : 'SG'}_EMAIL_FROM not set` : 'no buyer email' };
     try { out.notify = await notifySale(env, { resource: 'sale', saleId: session.id, productName: entry.name, price: session.amount_total, currency: session.currency, test: !session.livemode, email, recurrence: entry.interval || null }, { brand: `${brandOf(entry)} (Stripe)`, now, fetchImpl }); } catch {}
     // Written last: if anything above throws, Stripe retries and the derived key makes the retry produce the same records.
-    await putJ(env, `ssess:${session.id}`, { key, h, kind: entry.kind, name: entry.name, products: rec.products, tier: rec.tier, site: entry.site, at: now, livemode: rec.livemode }, { expirationTtl: 30 * 86400 });
+    await putJ(env, `ssess:${session.id}`, { key, h, kind: entry.kind, name: entry.name, products: rec.products, tier: rec.tier, site: entry.site, at: now, livemode: rec.livemode, emailed: !!out.buyerEmail?.sent }, { expirationTtl: 30 * 86400 });
     return out;
 }
 
@@ -180,9 +180,9 @@ export async function stripeSession(req, env, url, now = Date.now()) {
     const id = String(url.searchParams.get('id') || '');
     if (!/^cs_(test|live)_[A-Za-z0-9]{10,250}$/.test(id)) throw new HttpError(400, 'Missing or invalid session id.');
     const s = await getJ(env, `ssess:${id}`);
-    if (!s) return { ok: true, status: 'pending', message: 'Payment received. Your key is on its way: check your email in a few minutes.' };
+    if (!s) return { ok: true, status: 'pending', message: 'Payment received. Your key is not ready yet. Refresh this page in a minute, or check your email.' };
     if (now - s.at > 7 * DAY) return { ok: true, status: 'expired', message: 'Your key was sent to the email address you used at checkout.' };
-    return { ok: true, status: 'ready', key: s.key, kind: s.kind, name: s.name, products: s.products, tier: s.tier, site: s.site, test: !s.livemode };
+    return { ok: true, status: 'ready', key: s.key, kind: s.kind, name: s.name, products: s.products, tier: s.tier, site: s.site, test: !s.livemode, emailed: !!s.emailed };
 }
 export async function stripeVerify(req, env, now = Date.now()) {
     if (!rateLimit(`sv:${clientIp(req)}`, 30, 60000)) throw new HttpError(429, 'Too many checks. Wait a minute.');

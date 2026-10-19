@@ -14,8 +14,9 @@ export const PLAN_FEATURES = {
 };
 export function plan(tier) {
     const t = CONFIG.tiers?.[tier] || {};
-    if (tier === 'agencykit') return { tier, name: TIERS.agencykit.name, price: '$29 one-time', checkout: https(CONFIG.agencyKit?.checkoutUrl) };
-    return { tier, name: TIERS[tier]?.name, monthly: t.monthly, yearly: t.yearly, price: t.monthly ? `$${t.monthly}/mo or $${t.yearly}/yr` : '', checkout: https(t.checkoutUrl) };
+    const st = CONFIG.stripeCheckout ? CONFIG.stripe || {} : null;   // Stripe links only when the flag is on
+    if (tier === 'agencykit') return { tier, name: TIERS.agencykit.name, price: '$29 one-time', checkout: https(st ? st.agencyKit : CONFIG.agencyKit?.checkoutUrl) };
+    return { tier, name: TIERS[tier]?.name, monthly: t.monthly, yearly: t.yearly, price: t.monthly ? `$${t.monthly}/mo or $${t.yearly}/yr` : '', checkout: https(st ? st[tier]?.monthly : t.checkoutUrl), checkoutYearly: st ? https(st[tier]?.yearly) : '' };
 }
 export const PAID = ['pro', 'agency', 'agencyplus'];
 export function buyLink(tier, label, cls = 'btn btn-acc') {

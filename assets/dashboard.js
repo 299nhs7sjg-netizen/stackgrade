@@ -54,6 +54,7 @@ async function start() {
 function renderPlan() {
     const freeTok = ls.get(FREE_KEY);
     $('#plan').innerHTML = `<b>${esc(me.plan)}</b> plan · ${me.used} of ${me.monitors} domain${me.monitors === 1 ? '' : 's'} · checked ${esc(me.frequency)}${me.lockAt ? ` · membership ends ${esc(new Date(me.lockAt).toLocaleDateString())}` : ''}
+      ${/^SG-[A-Z]+(-[0-9A-Z]{4}){4}$/.test(String(token || '')) && /^https:\/\//.test(CONFIG.billingPortalUrl || '') ? ` · <a href="${esc(CONFIG.billingPortalUrl)}" target="_blank" rel="noopener">Manage billing</a> <span class="d">(cancel, update card, invoices; sign in with your purchase email)</span>` : ''}
       ${me.paused ? `<p class="kit-msg">Monitoring is paused: ${esc(me.paused)}</p>` : ''}
       ${me.kind === 'free' ? `<p class="d">Your free token (keep it to use this monitor on another device): <code>${esc(freeTok)}</code></p>` : ''}
       <p class="d">${esc(ALERTS_NOTE)}</p>`;

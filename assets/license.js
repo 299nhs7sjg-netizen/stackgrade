@@ -24,8 +24,8 @@ export function products(cfg = CONFIG) {
     return out;
 }
 export function productId(cfg = CONFIG) { return String(cfg?.agencyKit?.productId || '').trim(); }
-export function checkoutUrl(cfg = CONFIG) { return https(cfg?.agencyKit?.checkoutUrl); }
-export function tierCheckout(tier, cfg = CONFIG) { return tier === 'agencykit' ? checkoutUrl(cfg) : https(cfg?.tiers?.[tier]?.checkoutUrl); }
+export function checkoutUrl(cfg = CONFIG) { return https(cfg?.stripeCheckout ? cfg?.stripe?.agencyKit : cfg?.agencyKit?.checkoutUrl); }
+export function tierCheckout(tier, cfg = CONFIG) { return tier === 'agencykit' ? checkoutUrl(cfg) : https(cfg?.stripeCheckout ? cfg?.stripe?.[tier]?.monthly : cfg?.tiers?.[tier]?.checkoutUrl); }
 export function isConfigured(cfg = CONFIG) { return Object.values(products(cfg)).some(Boolean); }
 const pkey = (cfg) => JSON.stringify(products(cfg));
 

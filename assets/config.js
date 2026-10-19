@@ -12,12 +12,14 @@ export const CONFIG = {
     },
     // StackGrade API (Cloudflare Worker, free tier): monitoring, alerts, lead capture, page fingerprinting.
     api: "https://api.stackgrade.workers.dev",
-    // Stripe (replaces Gumroad once filled in). Payment link URLs per plan; empty = keep the Gumroad button.
+    // Stripe payment links (live). OFF until stripeCheckout is true: buttons keep pointing at Gumroad until then.
+    // Turn on only after a StackGrade buyer-email sender exists (worker SG_EMAIL_FROM).
+    stripeCheckout: false,
     stripe: {
-        agencyKit: "",                       // PLACEHOLDER: https://buy.stripe.com/... (Agency Kit, $29 one-time)
-        pro: { monthly: "", yearly: "" },    // PLACEHOLDER: payment link URLs, $19/mo and $190/yr
-        agency: { monthly: "", yearly: "" }, // PLACEHOLDER: $49/mo and $490/yr
-        agencyplus: { monthly: "", yearly: "" }, // PLACEHOLDER: $99/mo and $990/yr
+        agencyKit: "https://buy.stripe.com/dRm7sN86d7ptfl4amCaR208",
+        pro: { monthly: "https://buy.stripe.com/eVq5kFcmt115gp8dyOaR209", yearly: "https://buy.stripe.com/fZuaEZ5Y5cJNeh00M2aR20a" },
+        agency: { monthly: "https://buy.stripe.com/28E5kF5Y5fVZc8S0M2aR20b", yearly: "https://buy.stripe.com/dRmeVf5Y59xBeh0fGWaR20c" },
+        agencyplus: { monthly: "https://buy.stripe.com/3cI00ldqxaBFeh07aqaR20d", yearly: "https://buy.stripe.com/fZuaEZ2LTh03a0KbqGaR20e" },
     },
-    billingPortalUrl: "",   // PLACEHOLDER: Stripe customer portal login link (https://billing.stripe.com/p/login/...)
+    billingPortalUrl: "https://billing.stripe.com/p/login/00w14p9ah5hl2yi3YeaR200",   // Stripe customer portal login (live)
 };
