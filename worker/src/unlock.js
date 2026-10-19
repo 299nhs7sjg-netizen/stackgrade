@@ -1,10 +1,12 @@
 // Server-side unlock for the GreenTools product sites (BlotOut, DocBurn, LockFit, MetaGone, SnapFit, ImageBuff).
 // POST /v1/unlock {"product":"blotout","key":"..."} -> {ok:true, via:"license"|"code"} or {ok:false, error} (403).
-// Accepts (1) a Gumroad license key for THAT product (verified with Gumroad, server-side product id), or (2) a current
+// Accepts (1) a Gumroad license key for THAT product (verified with Gumroad, server-side product id), (2) a Stripe-issued
+// key GT-<TOOL>-... (or GT-ALLACCESS-...) whose KV record lists the product (worker/src/stripe.js), or (3) a current
 // unlock code. Codes live only in KV as SHA-256 hashes: unlockcode:<product>:<sha256("unlock:<product>:<CODE>")> -> "1".
 // No code is ever in public JS; retired codes simply have no KV entry, so they are rejected.
 import { evaluatePurchase, VERIFY_URL } from '../../assets/tiers.js';
 import { sha256hex, readJson, HttpError, rateLimit, clientIp } from './util.js';
+import { isStripeKey, stripeKeyStatus } from './stripe.js';
 
 export const UNLOCK_PRODUCTS = {
     blotout: 'Qs1Qjc4ilvLILnInaDwHrg==',
@@ -26,9 +28,14 @@ export async function postUnlock(req, env, { fetchImpl = fetch } = {}) {
     const product = String(b.product || '').toLowerCase();
     if (!Object.hasOwn(UNLOCK_PRODUCTS, product)) throw new HttpError(400, 'Unknown product.');
     const raw = String(b.key || '').trim();
-    if (raw.length < 6 || raw.length > 120) throw new HttpError(400, 'Paste the license key from your Gumroad receipt.');
+    if (raw.length < 6 || raw.length > 120) throw new HttpError(400, 'Paste the key from your receipt email.');
     if (RETIRED_FORMAT.test(normCode(raw))) throw new HttpError(403, RETIRED_MSG);   // pre-Oct-2026 codes (IB-…, SF-…): never valid
     if (CODE_FORMAT.test(normCode(raw)) && await env.KV.get(await codeKey(product, raw))) return { ok: true, product, via: 'code' };
+    if (isStripeKey(raw)) {
+        const r = await stripeKeyStatus(env, raw);
+        if (r.ok && r.kind === 'gt' && (r.products || []).includes(product)) return { ok: true, product, via: 'stripe' };
+        throw new HttpError(403, r.ok ? 'That key is for a different product.' : r.reason);
+    }
     const pid = UNLOCK_PRODUCTS[product];
     if (pid) {
         const body = new URLSearchParams({ product_id: pid, license_key: raw, increment_uses_count: 'false' });
@@ -42,5 +49,5 @@ export async function postUnlock(req, env, { fetchImpl = fetch } = {}) {
         }
         if (r && r.status >= 500) throw new HttpError(502, 'Gumroad is not answering right now. Try again in a minute.');
     }
-    throw new HttpError(403, 'That key is not valid for this product. Paste the license key from your Gumroad receipt.');
+    throw new HttpError(403, 'That key is not valid for this product. Paste the key from your receipt email.');
 }

@@ -47,13 +47,14 @@ export function normalizeKey(raw) {
     k = k.replace(/^\s*(?:your\s+)?licen[cs]e(?:\s+key)?\s*[:#=-]?\s*/i, '');
     k = k.replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-').replace(/["'`\u2018\u2019\u201C\u201D<>\[\](){}]/g, '').replace(/\s+/g, '');
     if (/^[0-9a-f]{8}(-[0-9a-f]{8}){3}$/i.test(k)) k = k.toUpperCase();
+    if (/^(gt|sg)-[a-z]{2,12}(-[0-9a-z]{4}){4}$/i.test(k)) k = k.toUpperCase();   // Stripe-issued keys (worker/src/stripe.js)
     return k;
 }
 // Recognise things people paste instead of the license key.
 export function keyShapeHint(k) {
-    if (!k) return 'Paste the license key from your Gumroad receipt.';
+    if (!k) return 'Paste the license key from your receipt email.';
     if (/^\d{5,}$/.test(k)) return 'That looks like an order number, not a license key. The license key has four groups of 8 letters and numbers, like XXXXXXXX-XXXXXXXX-XXXXXXXX-XXXXXXXX.';
-    if (/@/.test(k)) return 'That looks like an email address. Paste the license key from your Gumroad receipt instead.';
+    if (/@/.test(k)) return 'That looks like an email address. Paste the license key from your receipt email instead.';
     if (/^https?:/i.test(k) || /gumroad\.com/i.test(k)) return 'That looks like a link. Paste the license key itself (four groups of 8 letters and numbers), not the receipt or product link.';
     if (/^[A-Za-z0-9_-]{20,24}==$/.test(k)) return 'That looks like a Gumroad sale or product ID, not a license key. The license key has four groups of 8 letters and numbers.';
     return null;
@@ -78,13 +79,21 @@ async function verifyOne(productId, key, fetchImpl, now) {
 
 // products: { tierId: productId } (empty ids are skipped). Checks every product in parallel; the highest valid tier wins.
 // Returns { ok, tier, definitive, reason, lockAt?, recurrence? }.
-export async function verifyLicense(key, products, { fetchImpl = globalThis.fetch, now = Date.now() } = {}) {
+// Stripe-issued StackGrade keys: SG-<PLAN>-XXXX-XXXX-XXXX-XXXX. They are checked by the StackGrade API (stripeVerify),
+// never by Gumroad. Gumroad keys are unchanged.
+export const STRIPE_SG_KEY = /^SG-[A-Z]{2,12}(-[0-9A-HJKMNP-TV-Z]{4}){4}$/;
+export async function verifyLicense(key, products, { fetchImpl = globalThis.fetch, now = Date.now(), stripeVerify = null } = {}) {
     const k = normalizeKey(key);
+    if (STRIPE_SG_KEY.test(k)) {
+        if (!stripeVerify) return { ok: false, definitive: true, notFound: true, reason: 'That key could not be checked here.' };
+        const r = await stripeVerify(k);
+        return r.ok && TIERS[r.tier] ? { ok: true, tier: r.tier, key: k, lockAt: r.lockAt || null, recurrence: r.recurring ? 'stripe' : null, test: !!r.test, reason: r.reason || null } : { ok: false, definitive: r.definitive !== false, reason: r.reason || 'That key is not active.' };
+    }
     const list = Object.entries(products || {}).filter(([t, id]) => TIERS[t] && String(id || '').trim());
     if (!list.length) return { ok: false, definitive: true, reason: 'No paid plans are on sale yet.' };
     const hint = keyShapeHint(k);
     if (hint) return { ok: false, definitive: true, notFound: true, shape: true, reason: hint };
-    if (k.length < 8 || k.length > 200 || /[<>"'\s]/.test(k)) return { ok: false, definitive: true, notFound: true, shape: true, reason: 'Enter the license key from your Gumroad receipt.' };
+    if (k.length < 8 || k.length > 200 || /[<>"'\s]/.test(k)) return { ok: false, definitive: true, notFound: true, shape: true, reason: 'Enter the license key from your receipt email.' };
     const results = await Promise.all(list.map(async ([tier, id]) => ({ tier, ...(await verifyOne(String(id).trim(), k, fetchImpl, now)) })));
     const good = results.filter((r) => r.ok).sort((a, b) => TIERS[b.tier].rank - TIERS[a.tier].rank);
     if (good.length) {

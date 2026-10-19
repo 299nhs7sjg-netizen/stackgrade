@@ -12,4 +12,12 @@ export const CONFIG = {
     },
     // StackGrade API (Cloudflare Worker, free tier): monitoring, alerts, lead capture, page fingerprinting.
     api: "https://api.stackgrade.workers.dev",
+    // Stripe (replaces Gumroad once filled in). Payment link URLs per plan; empty = keep the Gumroad button.
+    stripe: {
+        agencyKit: "",                       // PLACEHOLDER: https://buy.stripe.com/... (Agency Kit, $29 one-time)
+        pro: { monthly: "", yearly: "" },    // PLACEHOLDER: payment link URLs, $19/mo and $190/yr
+        agency: { monthly: "", yearly: "" }, // PLACEHOLDER: $49/mo and $490/yr
+        agencyplus: { monthly: "", yearly: "" }, // PLACEHOLDER: $99/mo and $990/yr
+    },
+    billingPortalUrl: "",   // PLACEHOLDER: Stripe customer portal login link (https://billing.stripe.com/p/login/...)
 };

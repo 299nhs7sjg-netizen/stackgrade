@@ -114,3 +114,24 @@ test('shipped public config is filled in, https checkout, and not a license-key-
     assert.doesNotMatch(CONFIG.agencyKit.productId, /^[0-9A-F]{8}-[0-9A-F]{8}-[0-9A-F]{8}-[0-9A-F]{8}$/i);
     assert.match(checkoutUrl(CONFIG), /^https:\/\/[a-z0-9-]+\.gumroad\.com\/l\//);
 });
+
+// ---- Stripe-issued keys (SG-...) go to the StackGrade API, never to Gumroad or Stripe ----
+const scfg = { ...cfg, api: 'https://api.example' };
+const SGKEY = 'SG-KIT-ABCD-EFGH-JKMN-PQRS';
+test('Stripe SG key: verified by POST /v1/stripe/verify on the StackGrade API; Gumroad not called', async () => {
+    const calls = [];
+    const f = async (url, opts) => { calls.push({ url, body: opts.body }); return json(200, { ok: true, kind: 'sg', tier: 'agencykit', lockAt: null }); };
+    const r = await verifyKey(SGKEY.toLowerCase(), { cfg: scfg, fetchImpl: f });
+    assert.equal(r.ok, true); assert.equal(r.tier, 'agencykit'); assert.equal(r.key, SGKEY);
+    assert.equal(calls.length, 1); assert.equal(calls[0].url, 'https://api.example/v1/stripe/verify'); assert.deepEqual(JSON.parse(calls[0].body), { key: SGKEY });
+    const store = mem(); const a = await activate(SGKEY, { cfg: scfg, fetchImpl: f, store }); assert.equal(a.whiteLabel, true);
+    _clearWidgetCache(); const w = await verifyForWidget(SGKEY, { cfg: scfg, fetchImpl: f }); assert.equal(w.ok, true); assert.equal(w.leadsOk, true);
+});
+test('Stripe SG key: revoked = definitive lock; server down = not definitive (grace applies)', async () => {
+    const dead = async () => json(403, { ok: false, definitive: true, reason: 'This purchase was refunded, so the key is no longer active.' });
+    const r = await verifyKey(SGKEY, { cfg: scfg, fetchImpl: dead }); assert.equal(r.ok, false); assert.equal(r.definitive, true); assert.match(r.reason, /refunded/);
+    const down = async () => json(503, { ok: false });
+    const r2 = await verifyKey(SGKEY, { cfg: scfg, fetchImpl: down }); assert.equal(r2.ok, false); assert.equal(r2.definitive, false);
+    const boom = async () => { throw new Error('net'); };
+    const r3 = await verifyKey(SGKEY, { cfg: scfg, fetchImpl: boom }); assert.equal(r3.definitive, false);
+});

@@ -1,5 +1,5 @@
 // StackGrade API: Cloudflare Worker (Workers Free plan) + one KV namespace. No secrets in this file.
-// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
+// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
 import { notifySale } from './salenotify.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { TIERS, verifyLicense, normalizeKey } from '../../assets/tiers.js';
@@ -9,6 +9,7 @@ import { checkUrl, safeFetch } from './ssrf.js';
 import { fingerprint } from './fingerprint.js';
 import { takeSnapshot, mergeSnapshot, diffSnapshots, sameSnapshot } from './snapshot.js';
 import { postUnlock } from './unlock.js';
+import { stripeWebhook, stripeSession, stripeVerify, stripeHealth, stripeKeyStatus, isStripeKey } from './stripe.js';
 
 export const VERSION = '1.0.0';
 const DAY = 86400000;
@@ -53,6 +54,7 @@ export async function licenseAccount(env, key, { now = Date.now(), fetchImpl } =
     if (neg && now - neg.at < 600000) return { ok: false, status: 403, error: neg.reason };
     let acct = await getJ(env, K.acct(id));
     const lic = acct?.lic;
+    if (isStripeKey(key)) return stripeAccount(env, key, id, acct, now);
     if (lic?.ok && now - lic.checkedAt < DAY && !(lic.lockAt && now >= lic.lockAt)) return { ok: true, acct, cached: true };
     const r = await verifyLicense(key, products(env), { fetchImpl, now });
     if (r.ok) {
@@ -65,6 +67,22 @@ export async function licenseAccount(env, key, { now = Date.now(), fetchImpl } =
     if (r.definitive) negCache.set(id, { at: now, reason: r.reason });
     if (negCache.size > 2000) negCache.clear();
     return { ok: false, status: r.definitive ? 403 : 503, error: r.reason };
+}
+
+// Stripe-issued StackGrade keys (SG-...): the key record lives in this Worker's KV, so it is read on every call (no
+// 24h cache needed) and the account doc is only rewritten when something changed or once a day (pausedReason).
+async function stripeAccount(env, key, id, acct, now) {
+    const r = await stripeKeyStatus(env, key, now);
+    if (r.ok && r.kind !== 'sg') return { ok: false, status: 403, error: 'That is a GreenTools key. Paste it in the tool it was bought for.' };
+    if (!r.ok) {
+        if (acct && acct.lic?.ok !== false) { acct.lic = { ok: false, checkedAt: now, reason: r.reason, lastOkAt: acct.lic?.lastOkAt || null, via: 'stripe' }; await putJ(env, K.acct(id), acct); }
+        return { ok: false, status: 403, error: r.reason };
+    }
+    const lic = acct?.lic;
+    if (acct && lic?.ok && acct.tier === r.tier && (lic.lockAt || null) === (r.lockAt || null) && now - lic.checkedAt < DAY) return { ok: true, acct, cached: true };
+    acct = { id, kind: 'license', monitors: [], webhook: null, created: now, ...(acct || {}), tier: r.tier, lic: { ok: true, checkedAt: now, lastOkAt: now, lockAt: r.lockAt || null, recurrence: r.recurring ? 'stripe' : null, note: r.reason || null, via: 'stripe' } };
+    await putJ(env, K.acct(id), acct);
+    return { ok: true, acct, cached: false };
 }
 
 async function account(req, env) {
@@ -362,7 +380,7 @@ async function route(req, env, ctx) {
     const p = url.pathname.replace(/\/+$/, '') || '/';
     const M = req.method;
     if (M === 'OPTIONS') return new Response(null, { status: 204, headers: cors(req) });
-    if (p === '/' || p === '/v1/health') return json(req, { ok: true, service: 'stackgrade-api', version: VERSION, plans: Object.fromEntries(Object.entries(products(env)).map(([t, id]) => [t, !!id])), docs: 'https://299nhs7sjg-netizen.github.io/stackgrade/faq/' });
+    if (p === '/' || p === '/v1/health') return json(req, { ok: true, service: 'stackgrade-api', version: VERSION, plans: Object.fromEntries(Object.entries(products(env)).map(([t, id]) => [t, !!id])), stripe: stripeHealth(env), docs: 'https://299nhs7sjg-netizen.github.io/stackgrade/faq/' });
 
     if (p === '/internal/check' && M === 'POST') {
         if (!env.INTERNAL_KEY || req.headers.get('x-internal-key') !== env.INTERNAL_KEY) return err(req, 404, 'Not found.');
@@ -381,6 +399,9 @@ async function route(req, env, ctx) {
         return new Response('ok', { status: 200, headers: { 'content-type': 'text/plain' } });
     }
     if (p === '/v1/support' && M === 'POST') return json(req, await postSupport(req, env));
+    if (p === '/v1/stripe/webhook' && M === 'POST') { const r = await stripeWebhook(req, env); return json(req, r.body, r.status); }
+    if (p === '/v1/stripe/session' && M === 'GET') return json(req, await stripeSession(req, env, url));
+    if (p === '/v1/stripe/verify' && M === 'POST') { const r = await stripeVerify(req, env); return json(req, r.body, r.status); }
     if (p === '/v1/unlock' && M === 'POST') return json(req, await postUnlock(req, env));
     if (p === '/v1/license/verify' && M === 'POST') {
         if (!rateLimit(`lic:${clientIp(req)}`, 30, 60000)) return err(req, 429, 'Too many license checks. Wait a minute.');

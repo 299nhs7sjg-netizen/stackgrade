@@ -1,7 +1,7 @@
 // StackGrade licensing in the browser (Agency Kit, Pro, Agency, Agency+). Rules live in ./tiers.js (shared with the API Worker).
 //
 // HONEST LIMITS: verification runs in the visitor's browser against Gumroad's public
-// license API. Anyone who edits this JavaScript or their localStorage can bypass it, and a
+// license API (Gumroad keys) or the StackGrade API (Stripe-issued SG- keys). Anyone who edits this JavaScript or their localStorage can bypass it, and a
 // license key placed in a public embed snippet can be copied by anyone. This is a
 // convenience lock for honest customers, not DRM. There is no "I paid" / honor path.
 import { CONFIG } from './config.js';
@@ -30,10 +30,22 @@ export function isConfigured(cfg = CONFIG) { return Object.values(products(cfg))
 const pkey = (cfg) => JSON.stringify(products(cfg));
 
 // Returns { ok: true, tier } | { ok: false, definitive: bool, reason }
+// Stripe-issued keys (SG-...) are checked by the StackGrade API (POST /v1/stripe/verify); the page never calls Stripe.
+export function stripeVerifier(cfg = CONFIG, fetchImpl = globalThis.fetch) {
+    return async (key) => {
+        let res, j = null;
+        try { res = await fetchImpl(`${String(cfg?.api || '').replace(/\/+$/, '')}/v1/stripe/verify`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key }) }); j = await res.json().catch(() => null); }
+        catch { return { ok: false, definitive: false, reason: 'Could not reach the StackGrade license server. Check your connection and try again.' }; }
+        if (!j || res.status >= 500 || res.status === 429) return { ok: false, definitive: false, reason: 'The license server did not answer. Try again shortly.' };
+        if (j.ok && j.lockAt) j.lockAt = Date.parse(j.lockAt) || null;
+        return j;
+    };
+}
 export async function verifyKey(key, { cfg = CONFIG, fetchImpl = globalThis.fetch, now = Date.now() } = {}) {
     if (!isConfigured(cfg)) return { ok: false, definitive: true, reason: 'Agency Kit is not on sale yet.' };
-    return verifyLicense(key, products(cfg), { fetchImpl, now });
+    return verifyLicense(key, products(cfg), { fetchImpl, now, stripeVerify: stripeVerifier(cfg, fetchImpl) });
 }
+export function billingPortalUrl(cfg = CONFIG) { return https(cfg?.billingPortalUrl); }
 
 function read(store) { try { return JSON.parse(store.getItem(STORE_KEY) || 'null'); } catch { return null; } }
 const feat = (tier) => ({ tier, plan: TIERS[tier]?.name || tier, whiteLabel: !!TIERS[tier]?.whiteLabel, leads: !!TIERS[tier]?.leads });
