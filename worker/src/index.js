@@ -1,5 +1,6 @@
 // StackGrade API: Cloudflare Worker (Workers Free plan) + one KV namespace. No secrets in this file.
 // Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
+import { notifySale } from './salenotify.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { TIERS, verifyLicense, normalizeKey } from '../../assets/tiers.js';
 import { parseInput } from '../../assets/checks.js';
@@ -348,8 +349,10 @@ export async function handlePing(env, raw, contentType, { fetchImpl, now = Date.
     // (StackGrade licenses are verified above; FortHire (ex-Ciphire) Pro keys are verified by FortHire's own Pages Function).
     const brand = tierForProduct ? 'StackGrade' : (s.productId && s.productId === env.PRODUCT_CIPHIRE_PRO) || /^(ciphire|forthire)/i.test(s.productName || '') ? 'FortHire' : 'other';
     const rec = { id: rid, at: new Date(now).toISOString(), brand, ...rest, keyLast4: licenseKey ? licenseKey.slice(-4) : null, tierForProduct, verify };
+    const seen = s.saleId ? await env.KV.get(`sale:${rid}`) : null;   // Gumroad retries pings: notify once
     await env.KV.put(`sale:${rid}`, JSON.stringify(rec), { metadata: { at: rec.at, resource: s.resource, brand, tier: verify?.tier || null, unlocks: verify?.unlocks ?? null } });
     console.log(JSON.stringify({ ping: s.resource, brand, product: tierForProduct, verify: verify.result || verify.reason, test: s.test }));
+    if (!seen) { try { rec.notify = await notifySale(env, s, { brand, now, fetchImpl }); } catch (e) { console.log(JSON.stringify({ notify_error: String(e?.message || e) })); } }
     return rec;
 }
 
