@@ -9,7 +9,7 @@ import { checkUrl, safeFetch } from './ssrf.js';
 import { fingerprint } from './fingerprint.js';
 import { takeSnapshot, mergeSnapshot, diffSnapshots, sameSnapshot } from './snapshot.js';
 import { postUnlock } from './unlock.js';
-import { stripeWebhook, stripeSession, stripeVerify, stripePortal, stripeHealth, stripeKeyStatus, isStripeKey } from './stripe.js';
+import { stripeWebhook, stripeSession, stripeVerify, stripePortal, stripeHealth, stripeKeyStatus, isStripeKey, stripeKeyLookup } from './stripe.js';
 
 export const VERSION = '1.0.0';
 const DAY = 86400000;
@@ -525,6 +525,7 @@ async function admin(cmd, req, env) {
         await addToSlots(env, [{ m: mon.id, a: acct.id, d: mon.d, f: mon.f, h: mon.h, s: mon.s, w: mon.w }]);
         return { ok: true, monitor: pubMonitor(mon) };
     }
+    if (cmd === 'stripe-key' && req.method === 'POST') return stripeKeyLookup(env, b);   // support: find/reissue a Stripe key
     if (cmd === 'sales' && req.method === 'GET') return listRecords(env, 'sale:', new URL(req.url));
     if (cmd === 'support' && req.method === 'GET') return listRecords(env, 'support:', new URL(req.url));
     const del = cmd.match(/^(sales|support)\/(.+)$/);

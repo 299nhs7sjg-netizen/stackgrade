@@ -59,7 +59,7 @@ test('catalog: every GreenTools/StackGrade item has live and sandbox link + pric
 test('GreenTools sale: key issued, emailed with receipt, [TEST] alert, thanks lookup, unlock; idempotent per session', async () => {
     const env = envBase(); const s = session();
     const pend = await call(env, 'GET', `/v1/stripe/session?id=${s.id}`);
-    assert.equal(pend.body.status, 'pending'); assert.match(pend.body.message, /check your email/);
+    assert.equal(pend.body.status, 'pending'); assert.match(pend.body.message, /Refresh this page in a minute/);
     const r = await signed(env, completed(s));
     assert.equal(r.status, 200); assert.equal(r.body.issued, true);
     const look = await call(env, 'GET', `/v1/stripe/session?id=${s.id}`);
@@ -192,4 +192,35 @@ test('events for other products (Featured, FortHire Pro) get 200 and are ignored
     const r5 = await signed(env, { id: 'e3', type: 'invoice.paid', livemode: false, data: { object: {} } });
     assert.equal(r5.status, 200);
     assert.equal(mails.length, 0); assert.equal(env.KV.m.size, 0);
+});
+
+test('thanks lookup: key shown for 24h with the proof-of-purchase note, then a support pointer; lookups are rate limited', async () => {
+    const env = envBase(); delete env.GT_EMAIL_FROM;
+    const s = session({ customer_details: { email: 'Lost@Example.com' }, customer: 'cus_lost', payment_intent: 'pi_lost' });
+    await signed(env, completed(s));
+    const r = await call(env, 'GET', `/v1/stripe/session?id=${s.id}`);
+    assert.equal(r.body.status, 'ready'); assert.ok(isStripeKey(r.body.key)); assert.equal(r.body.emailed, false);
+    assert.equal(r.body.note, 'Save this key, it is your proof of purchase. Lost it? Email support@forthire.com with your Stripe receipt.');
+    const rec = JSON.parse(await env.KV.get(`ssess:${s.id}`)); rec.at -= 25 * 3600000; await env.KV.put(`ssess:${s.id}`, JSON.stringify(rec));
+    const old = await call(env, 'GET', `/v1/stripe/session?id=${s.id}`);
+    assert.equal(old.body.status, 'expired'); assert.equal(old.body.key, undefined); assert.match(old.body.message, /24 hours.*support@forthire\.com with your Stripe receipt/);
+    let last = 200; const ip = { 'cf-connecting-ip': '10.9.9.9' };
+    for (let i = 0; i < 35; i++) last = (await worker.fetch(new Request(`https://api.example/v1/stripe/session?id=cs_test_probe${i}abcdefghijkl`, { headers: ip }), env, ctx())).status;
+    assert.equal(last, 429, 'per-IP limit stops id probing');
+});
+test('admin stripe-key: support finds and reissues the same key by email, session, customer or payment; needs ADMIN_KEY', async () => {
+    const env = { ...envBase(), ADMIN_KEY: 'adm_test' };
+    const s = session({ customer_details: { email: 'Lost@Example.com' }, customer: 'cus_lost2', payment_intent: 'pi_lost2' });
+    await signed(env, completed(s));
+    const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
+    const adm = (body, auth = 'Bearer adm_test') => call(env, 'POST', '/v1/admin/stripe-key', { body, headers: { authorization: auth } });
+    assert.equal((await adm({ email: 'lost@example.com' }, 'Bearer nope')).status, 404);
+    for (const q of [{ email: ' LOST@example.com ' }, { session: s.id }, { customer: 'cus_lost2' }, { paymentIntent: 'pi_lost2' }]) {
+        const r = await adm(q); assert.equal(r.status, 200, JSON.stringify(q)); assert.equal(r.body.count, 1); assert.equal(r.body.keys[0].key, key); assert.equal(r.body.keys[0].status, 'active');
+    }
+    await env.KV.delete(`ssess:${s.id}`);
+    assert.equal((await adm({ session: s.id })).body.keys[0].key, key, 'works after the 30-day session record is gone');
+    assert.equal((await adm({ email: 'nobody@example.com' })).body.count, 0);
+    assert.equal((await adm({})).status, 400);
+    assert.ok(![...env.KV.m.keys(), ...env.KV.m.values()].some((k) => k.includes('lost@example.com')), 'email not stored in KV keys');
 });

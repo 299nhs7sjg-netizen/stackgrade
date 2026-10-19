@@ -364,7 +364,7 @@ add({ slug: 'thanks/', og: 'home', showHow: false, noindex: true,
     title: 'Thanks for your purchase | StackGrade',
     desc: 'Your StackGrade key.',
     body: `<section class="hero"><h1>Thank you</h1><p class="sub" id="ty-msg" role="status">Loading…</p></section>
-<section class="seo dash"><div id="ty-box" hidden><h2>Your key</h2><p><code id="ty-key"></code> <button class="btn" type="button" id="ty-copy">Copy</button></p><p class="d" id="ty-act"></p>
+<section class="seo dash"><div id="ty-box" hidden><h2>Your key</h2><p><code id="ty-key"></code> <button class="btn" type="button" id="ty-copy">Copy</button></p><p class="d" id="ty-note"></p><p class="d" id="ty-act"></p>
 <p><a class="btn btn-acc" href="${P}app/">Open the dashboard</a> <a class="btn" href="${P}agency-widget/">Build your white-label widget</a></p></div>
 <p class="d">Lost the email? Contact support from the <a href="${P}faq/">FAQ</a>.</p></section>
 <script type="module" src="${P}assets/thanks.js"></script>`,

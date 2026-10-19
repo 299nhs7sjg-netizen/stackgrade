@@ -95,6 +95,9 @@ export function renderKeyEmail({ entry, key, session, now, portal = '' }) {
     return { subject: `${test ? '[TEST] ' : ''}Your ${entry.name} key`, text: lines.filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n') };
 }
 
+export const emailKey = async (e) => (await sha256hex('sem:' + String(e || '').trim().toLowerCase())).slice(0, 40);
+export const SHOW_MS = DAY;   // the thanks page can re-display a key for 24 hours after purchase
+export const LOST_KEY = 'Save this key, it is your proof of purchase. Lost it? Email support@forthire.com with your Stripe receipt.';
 // ---- fulfillment ----
 export async function fulfillSession(env, session, { now = Date.now(), fetchImpl = globalThis.fetch, index } = {}) {
     if (!['paid', 'no_payment_required'].includes(session.payment_status)) return { skipped: `payment_status ${session.payment_status}` };
@@ -114,6 +117,8 @@ export async function fulfillSession(env, session, { now = Date.now(), fetchImpl
     if (rec.paymentIntent) await env.KV.put(`spi:${rec.paymentIntent}`, h);
     if (rec.invoice) await env.KV.put(`sinv:${rec.invoice}`, h);
     if (rec.customer) { const l = (await getJ(env, `scus:${rec.customer}`)) || []; if (!l.includes(h)) await putJ(env, `scus:${rec.customer}`, [...l, h].slice(-50)); }
+    // Support reissue by purchase email (admin stripe-key): only a hash of the address is stored.
+    if (email) { const ek = `sem:${await emailKey(email)}`; const l = (await getJ(env, ek)) || []; if (!l.includes(h)) await putJ(env, ek, [...l, h].slice(-50)); }
     const out = { issued: true, keyHash: h, entry: entry.id };
     const from = entry.kind === 'gt' ? env.GT_EMAIL_FROM : env.SG_EMAIL_FROM;
     if (email && from) {
@@ -176,13 +181,15 @@ export async function stripeWebhook(req, env, { now = Date.now(), fetchImpl = gl
     return { status: 200, body: { ok: true, received: ev.type, ...result } };
 }
 export async function stripeSession(req, env, url, now = Date.now()) {
-    if (!rateLimit(`ss:${clientIp(req)}`, 60, 300000)) throw new HttpError(429, 'Too many requests. Wait a few minutes.');
+    // Session ids are unguessable; the per-IP limit (30 lookups / 10 min, enough for one page polling 12 times plus reloads)
+    // stops anyone from using this endpoint to probe ids at volume.
+    if (!rateLimit(`ss:${clientIp(req)}`, 30, 600000)) throw new HttpError(429, 'Too many requests. Wait a few minutes.');
     const id = String(url.searchParams.get('id') || '');
     if (!/^cs_(test|live)_[A-Za-z0-9]{10,250}$/.test(id)) throw new HttpError(400, 'Missing or invalid session id.');
     const s = await getJ(env, `ssess:${id}`);
-    if (!s) return { ok: true, status: 'pending', message: 'Payment received. Your key is not ready yet. Refresh this page in a minute, or check your email.' };
-    if (now - s.at > 7 * DAY) return { ok: true, status: 'expired', message: 'Your key was sent to the email address you used at checkout.' };
-    return { ok: true, status: 'ready', key: s.key, kind: s.kind, name: s.name, products: s.products, tier: s.tier, site: s.site, test: !s.livemode, emailed: !!s.emailed };
+    if (!s) return { ok: true, status: 'pending', message: 'Payment received. Your key is not ready yet. Refresh this page in a minute.' };
+    if (now - s.at > SHOW_MS) return { ok: true, status: 'expired', message: `This page only shows your key for 24 hours after purchase. ${s.emailed ? 'It was also sent to the email address you used at checkout. ' : ''}Lost it? Email support@forthire.com with your Stripe receipt.` };
+    return { ok: true, status: 'ready', key: s.key, kind: s.kind, name: s.name, products: s.products, tier: s.tier, site: s.site, test: !s.livemode, emailed: !!s.emailed, note: LOST_KEY };
 }
 export async function stripeVerify(req, env, now = Date.now()) {
     if (!rateLimit(`sv:${clientIp(req)}`, 30, 60000)) throw new HttpError(429, 'Too many checks. Wait a minute.');
@@ -206,4 +213,35 @@ export async function stripePortal(req, env) {
     const rec = await getJ(env, `skey:${await keyHash(k)}`);
     if (!rec) return { status: 404, body: { ok: false, error: 'No billing account was found for that key.' } };
     return { status: 200, body: { ok: true, url: env.STRIPE_PORTAL_URL } };
+}
+
+// Support: find and reissue Stripe keys (admin command stripe-key, ADMIN_KEY bearer). Look up by the buyer's purchase email,
+// a checkout session id (cs_...), customer (cus_...), subscription (sub_...), payment intent (pi_...) or invoice (in_...).
+// Keys are derived from the session id, so "reissue" re-derives the same key; status is not changed.
+export async function stripeKeyLookup(env, b) {
+    const hs = new Set();
+    const add = (v) => { if (typeof v === 'string' && /^[0-9a-f]{64}$/.test(v)) hs.add(v); };
+    const q = String(b.email || b.session || b.customer || b.subscription || b.paymentIntent || b.invoice || '').trim();
+    if (!q) throw new HttpError(400, 'Send one of: email, session, customer, subscription, paymentIntent, invoice.');
+    if (b.email) for (const h of (await getJ(env, `sem:${await emailKey(b.email)}`)) || []) add(h);
+    else if (/^cs_(test|live)_/.test(q)) { const s = await getJ(env, `ssess:${q}`); if (s) add(s.h); else { const e = await reissueFromSession(env, q); if (e) add(e); } }
+    else if (/^cus_/.test(q)) for (const h of (await getJ(env, `scus:${q}`)) || []) add(h);
+    else if (/^sub_/.test(q)) add(await env.KV.get(`ssub:${q}`));
+    else if (/^pi_/.test(q)) add(await env.KV.get(`spi:${q}`));
+    else if (/^in_/.test(q)) add(await env.KV.get(`sinv:${q}`));
+    else throw new HttpError(400, 'Unrecognized id.');
+    const out = [];
+    for (const h of hs) {
+        const rec = await getJ(env, `skey:${h}`); if (!rec || !rec.session) continue;
+        const entry = CATALOG.find((e) => e.id === rec.entry); if (!entry) continue;
+        const key = await deriveKey(env.STRIPE_WEBHOOK_SECRET, entry.prefix, rec.session);
+        if ((await keyHash(key)) !== h) continue;   // secret rotated: cannot re-derive, do not hand out a wrong key
+        out.push({ key, name: rec.name, status: rec.status, lockAt: rec.lockAt ? new Date(rec.lockAt).toISOString() : null, livemode: rec.livemode, email: rec.email, created: new Date(rec.created).toISOString(), session: rec.session, site: entry.site });
+    }
+    return { ok: true, count: out.length, keys: out };
+}
+// A session whose ssess record expired (30 days): find the key record by trying every catalog prefix.
+async function reissueFromSession(env, sid) {
+    for (const e of CATALOG) { const h = await keyHash(await deriveKey(env.STRIPE_WEBHOOK_SECRET, e.prefix, sid)); if (await env.KV.get(`skey:${h}`)) return h; }
+    return null;
 }
