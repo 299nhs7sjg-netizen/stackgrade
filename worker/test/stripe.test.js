@@ -48,10 +48,12 @@ test('webhook fails closed: no secret = 503, bad or stale signature = 400', asyn
     assert.equal(env2.KV.m.size, 0);
 });
 
-test('placeholders never match: the shipped catalog maps nothing until real IDs are filled in', () => {
-    const fresh = CATALOG.flatMap((e) => [e.live, e.sandbox]).filter((x) => x.plink.startsWith('PLACEHOLDER'));
-    assert.ok(fresh.length > 10);
-    assert.ok(!catalogIndex().has('PLACEHOLDER_PLINK_SNAPFIT_LIVE'));
+test('catalog: every GreenTools/StackGrade item has live and sandbox link + price IDs; metadata fallback matches the slug', async () => {
+    const fresh = await import('../src/stripe-ids.js');
+    for (const k of ['snapfit:once', 'greentools-all-access:once', 'stackgrade-agency-plus:year']) for (const env of ['live', 'sandbox']) { assert.match(fresh.STRIPE_IDS[env][k].plink, /^plink_/); assert.match(fresh.STRIPE_IDS[env][k].price, /^price_/); }
+    const { matchSession } = await import('../src/stripe.js');
+    assert.equal(matchSession({ livemode: false, payment_link: 'plink_unknown', metadata: { product: 'stackgrade-agency', interval: 'year' } }).id, 'sg-agency-yearly');
+    assert.equal(matchSession({ livemode: false, payment_link: 'plink_unknown', metadata: { product: 'forthire-pro', interval: 'month' } }), null, 'FortHire items are not handled here');
 });
 
 test('GreenTools sale: key issued, emailed with receipt, [TEST] alert, thanks lookup, unlock; idempotent per session', async () => {
@@ -119,7 +121,7 @@ test('StackGrade subscription: key -> account tier; portal plan change; cancel a
     await signed(env, completed(s));
     const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
     assert.match(key, /^SG-PRO-/);
-    assert.ok(mails.find((m) => m.to[0] === 'buyer@example.com').text.includes('Manage billing, invoices or cancel: https://billing.stripe.com/p/login/test_x'));
+    assert.ok(mails.find((m) => m.to[0] === 'buyer@example.com').text.includes('/stackgrade/app/ and choose Manage billing'));
     let v = await call(env, 'POST', '/v1/license/verify', { body: { key } });
     assert.equal(v.status, 200); assert.equal(v.body.tier, 'pro'); assert.equal(v.body.monitors, 25);
     const me = await call(env, 'GET', '/v1/me', { headers: { authorization: `Bearer ${key}` } });
@@ -162,4 +164,20 @@ test('Gumroad keys are unchanged: unknown non-Stripe key still goes to Gumroad',
 test('session lookup validates the id', async () => {
     const env = envBase();
     assert.equal((await call(env, 'GET', '/v1/stripe/session?id=nope')).status, 400);
+});
+
+test('portal: 503 without STRIPE_SECRET; with it, a session for the key\'s own customer and config', async () => {
+    const env = envBase(); env.STRIPE_PORTAL_CONFIG = 'bpc_test';
+    const s = session({ payment_link: 'plink_T_PRO_M', amount_total: 1900, subscription: 'sub_p', payment_intent: null, customer: 'cus_portal' });
+    await signed(env, completed(s));
+    const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
+    assert.equal((await call(env, 'POST', '/v1/stripe/portal', { body: { key } })).status, 503);
+    env.STRIPE_SECRET = 'rk_test_x'; let sent = null;
+    const prev = globalThis.fetch; globalThis.fetch = async (u, init) => { if (String(u) === 'https://api.stripe.com/v1/billing_portal/sessions') { sent = { auth: init.headers.authorization, body: new URLSearchParams(init.body) }; return new Response(JSON.stringify({ url: 'https://billing.stripe.com/p/session/test_abc' }), { status: 200 }); } return prev(u, init); };
+    const r = await call(env, 'POST', '/v1/stripe/portal', { body: { key } });
+    assert.equal(r.status, 200); assert.equal(r.body.url, 'https://billing.stripe.com/p/session/test_abc');
+    assert.equal(sent.auth, 'Bearer rk_test_x'); assert.equal(sent.body.get('customer'), 'cus_portal'); assert.equal(sent.body.get('configuration'), 'bpc_test');
+    assert.match(sent.body.get('return_url'), /stackgrade\/app\/$/);
+    assert.equal((await call(env, 'POST', '/v1/stripe/portal', { body: { key: 'SG-PRO-0000-0000-0000-0000' } })).status, 404);
+    assert.equal((await call(env, 'POST', '/v1/stripe/portal', { body: { key: 'ABCD' } })).status, 400);
 });

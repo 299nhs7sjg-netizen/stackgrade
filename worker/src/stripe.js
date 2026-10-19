@@ -7,8 +7,10 @@
 // retried or duplicated webhook produces the same key and the same records (idempotent per session).
 // KV: skey:<sha256> key record (no plaintext key) | ssess:<session> thanks-page record (plaintext key, 30-day TTL)
 //     ssub:<subscription> / spi:<payment_intent> / sinv:<invoice> -> key hash | scus:<customer> -> [key hashes]
+//   POST /v1/stripe/portal       { key } -> { url } one-time Stripe customer portal session for the key's customer
 // Vars: GT_EMAIL_FROM, SG_EMAIL_FROM (buyer email senders; empty = no buyer email, the thanks page still shows the key),
-//       STRIPE_PORTAL_URL (customer portal login link, shown in emails). Secrets: STRIPE_WEBHOOK_SECRET, RESEND_API_KEY.
+//       STRIPE_PORTAL_CONFIG (bpc_...). Secrets: STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, STRIPE_SECRET (restricted key:
+//       Customer portal write only; without it /v1/stripe/portal answers 503).
 import { catalogIndex, CATALOG } from './stripe-config.js';
 import { notifySale, money } from './salenotify.js';
 import { sha256hex, HttpError, rateLimit, clientIp, readJson } from './util.js';
@@ -66,6 +68,9 @@ const periodEnd = (sub) => Number(sub?.current_period_end || sub?.items?.data?.[
 export function matchSession(session, index = catalogIndex()) {
     const ids = [session.payment_link, ...(session.line_items?.data || []).map((li) => li.price?.id)].filter(Boolean);
     for (const id of ids) { const hit = index.get(id); if (hit && hit.livemode === !!session.livemode) return hit.entry; }
+    // Fallback: metadata.product (+ metadata.interval) copied from the payment link. Only GreenTools/StackGrade slugs match.
+    const slug = session.metadata?.product, iv = session.metadata?.interval;
+    if (slug) return CATALOG.find((e) => e.slug === slug && (!e.interval || e.interval === (iv === 'year' || iv === 'yearly' ? 'yearly' : 'monthly'))) || null;
     return null;
 }
 
@@ -75,7 +80,7 @@ async function sendResend(env, msg, idem, fetchImpl) {
         headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, 'content-type': 'application/json', 'idempotency-key': idem.slice(0, 256) }, body: JSON.stringify(msg) });
     return { sent: r.ok, status: r.status };
 }
-export function renderKeyEmail({ entry, key, session, portal, now }) {
+export function renderKeyEmail({ entry, key, session, now }) {
     const test = !session.livemode;
     const amount = money(session.amount_total, session.currency);
     const gt = entry.kind === 'gt';
@@ -87,7 +92,7 @@ export function renderKeyEmail({ entry, key, session, portal, now }) {
     const lines = [`Thanks for buying ${entry.name}.`, '', `Your key: ${key}`, '', ...how, '', 'Receipt',
         `Product: ${entry.name}`, `Amount paid: ${amount} ${String(session.currency || '').toUpperCase()}`, `Date: ${new Date(now).toISOString().slice(0, 10)}`,
         `Order reference: ${String(session.id).slice(-10)}`, session.subscription ? `Billing: renews ${entry.interval || 'each period'} until you cancel.` : 'Billing: one-time payment, no renewal.',
-        portal ? `Manage billing, invoices or cancel: ${portal}` : '', '', 'Keep this email. The key is what unlocks your purchase on another device.', 'Questions? Reply to this email.'];
+        session.subscription ? `To cancel, update your card or download invoices, open ${entry.site}/app/ and choose Manage billing.` : '', '', 'Keep this email. The key is what unlocks your purchase on another device.', 'Questions? Reply to this email.'];
     return { subject: `${test ? '[TEST] ' : ''}Your ${entry.name} key`, text: lines.filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n') };
 }
 
@@ -113,7 +118,7 @@ export async function fulfillSession(env, session, { now = Date.now(), fetchImpl
     const out = { issued: true, keyHash: h, entry: entry.id };
     const from = entry.kind === 'gt' ? env.GT_EMAIL_FROM : env.SG_EMAIL_FROM;
     if (email && from) {
-        const m = renderKeyEmail({ entry, key, session, portal: env.STRIPE_PORTAL_URL || '', now });
+        const m = renderKeyEmail({ entry, key, session, now });
         try { out.buyerEmail = await sendResend(env, { from, to: [email], subject: m.subject, text: m.text, tags: [{ name: 'kind', value: 'stripe-key' }] }, `stripe-key-${session.id}`, fetchImpl); }
         catch (e) { out.buyerEmail = { sent: false, reason: String(e?.message || e) }; }
     } else out.buyerEmail = { sent: false, reason: email ? `${entry.kind === 'gt' ? 'GT' : 'SG'}_EMAIL_FROM not set` : 'no buyer email' };
@@ -189,4 +194,23 @@ export async function stripeVerify(req, env, now = Date.now()) {
     const { key, ...pub } = r;
     return { status: r.ok ? 200 : 403, body: { ...pub, lockAt: r.lockAt ? new Date(r.lockAt).toISOString() : null } };
 }
-export const stripeHealth = (env) => ({ webhook: !!env.STRIPE_WEBHOOK_SECRET, mapped: catalogIndex().size, buyerEmail: { gt: !!env.GT_EMAIL_FROM, sg: !!env.SG_EMAIL_FROM }, portal: !!env.STRIPE_PORTAL_URL });
+export const stripeHealth = (env) => ({ webhook: !!env.STRIPE_WEBHOOK_SECRET, mapped: catalogIndex().size, buyerEmail: { gt: !!env.GT_EMAIL_FROM, sg: !!env.SG_EMAIL_FROM }, portal: !!(env.STRIPE_SECRET && env.STRIPE_PORTAL_CONFIG) });
+
+// Customer portal: a short-lived session URL for the customer that bought this key (never a shared login link).
+export async function stripePortal(req, env, { fetchImpl = globalThis.fetch } = {}) {
+    if (!rateLimit(`sp:${clientIp(req)}`, 10, 600000)) throw new HttpError(429, 'Too many requests. Wait a few minutes.');
+    if (!env.STRIPE_SECRET) return { status: 503, body: { ok: false, error: 'Billing management is not available yet. Email support and we will help.' } };
+    const b = await readJson(req, 2048);
+    const k = String(b.key || '').trim().toUpperCase();
+    if (!STRIPE_KEY_RE.test(k)) return { status: 400, body: { ok: false, error: 'Manage billing works for keys bought through Stripe (they start with GT- or SG-).' } };
+    const rec = await getJ(env, `skey:${await keyHash(k)}`);
+    if (!rec?.customer) return { status: 404, body: { ok: false, error: 'No billing account was found for that key.' } };
+    const entry = CATALOG.find((e) => e.id === rec.entry);
+    const form = new URLSearchParams({ customer: rec.customer, return_url: `${entry?.site || 'https://299nhs7sjg-netizen.github.io/stackgrade'}/${entry?.kind === 'sg' ? 'app/' : ''}` });
+    if (env.STRIPE_PORTAL_CONFIG) form.set('configuration', env.STRIPE_PORTAL_CONFIG);
+    let r, j = null;
+    try { r = await fetchImpl('https://api.stripe.com/v1/billing_portal/sessions', { method: 'POST', signal: AbortSignal.timeout(8000), headers: { authorization: `Bearer ${env.STRIPE_SECRET}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form }); j = await r.json().catch(() => null); }
+    catch { return { status: 502, body: { ok: false, error: 'Could not reach Stripe. Try again in a minute.' } }; }
+    if (!r.ok || !j?.url) { console.log(JSON.stringify({ stripe: 'portal error', status: r.status, type: j?.error?.type || null })); return { status: 502, body: { ok: false, error: 'Stripe did not open the billing page. Try again in a minute.' } }; }
+    return { status: 200, body: { ok: true, url: j.url } };
+}

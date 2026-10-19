@@ -1,5 +1,5 @@
 // StackGrade API: Cloudflare Worker (Workers Free plan) + one KV namespace. No secrets in this file.
-// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
+// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET, STRIPE_WEBHOOK_SECRET, STRIPE_SECRET, RESEND_API_KEY.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
 import { notifySale } from './salenotify.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { TIERS, verifyLicense, normalizeKey } from '../../assets/tiers.js';
@@ -9,7 +9,7 @@ import { checkUrl, safeFetch } from './ssrf.js';
 import { fingerprint } from './fingerprint.js';
 import { takeSnapshot, mergeSnapshot, diffSnapshots, sameSnapshot } from './snapshot.js';
 import { postUnlock } from './unlock.js';
-import { stripeWebhook, stripeSession, stripeVerify, stripeHealth, stripeKeyStatus, isStripeKey } from './stripe.js';
+import { stripeWebhook, stripeSession, stripeVerify, stripePortal, stripeHealth, stripeKeyStatus, isStripeKey } from './stripe.js';
 
 export const VERSION = '1.0.0';
 const DAY = 86400000;
@@ -402,6 +402,7 @@ async function route(req, env, ctx) {
     if (p === '/v1/stripe/webhook' && M === 'POST') { const r = await stripeWebhook(req, env); return json(req, r.body, r.status); }
     if (p === '/v1/stripe/session' && M === 'GET') return json(req, await stripeSession(req, env, url));
     if (p === '/v1/stripe/verify' && M === 'POST') { const r = await stripeVerify(req, env); return json(req, r.body, r.status); }
+    if (p === '/v1/stripe/portal' && M === 'POST') { const r = await stripePortal(req, env); return json(req, r.body, r.status); }
     if (p === '/v1/unlock' && M === 'POST') return json(req, await postUnlock(req, env));
     if (p === '/v1/license/verify' && M === 'POST') {
         if (!rateLimit(`lic:${clientIp(req)}`, 30, 60000)) return err(req, 429, 'Too many license checks. Wait a minute.');

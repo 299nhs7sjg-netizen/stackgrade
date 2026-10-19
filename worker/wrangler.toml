@@ -31,7 +31,7 @@ SALE_NOTIFY_TO = "productbuilder+sale@mail.grokbot.com"
 # secret SG_STRIPE_WEBHOOK_SECRET (live endpoint). PLACEHOLDERS: empty sender = no buyer email (thanks page still shows the key).
 GT_EMAIL_FROM = ""        # PLACEHOLDER: e.g. "GreenTools <keys@your-verified-resend-domain>"
 SG_EMAIL_FROM = ""        # PLACEHOLDER: e.g. "StackGrade <keys@your-verified-resend-domain>"
-STRIPE_PORTAL_URL = ""    # PLACEHOLDER: live customer portal login link https://billing.stripe.com/p/login/...
+STRIPE_PORTAL_CONFIG = "bpc_1USBf6QZcBGAqLabKkKuGLMR"   # live portal config; portal sessions need secret STRIPE_SECRET
 
 [observability]
 enabled = true
@@ -58,4 +58,4 @@ PRODUCT_AGENCY_PLUS = "O0PyQiJuzM8-c9NCThQKzQ=="
 # Stripe sandbox (secret STRIPE_WEBHOOK_SECRET from GitHub secret STAGING_SG_STRIPE_WEBHOOK_SECRET)
 GT_EMAIL_FROM = ""        # PLACEHOLDER (staging sender)
 SG_EMAIL_FROM = ""        # PLACEHOLDER (staging sender)
-STRIPE_PORTAL_URL = ""    # PLACEHOLDER: sandbox portal link https://billing.stripe.com/p/login/test_...
+STRIPE_PORTAL_CONFIG = "bpc_1USBewHIF61kB5K4Yp1gR7fK"   # sandbox portal config
