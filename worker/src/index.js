@@ -1,5 +1,5 @@
 // StackGrade API: Cloudflare Worker (Workers Free plan) + one KV namespace. No secrets in this file.
-// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET, STRIPE_WEBHOOK_SECRET, STRIPE_SECRET, RESEND_API_KEY.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
+// Secrets (wrangler secret put): ADMIN_KEY, INTERNAL_KEY, PING_SECRET, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY.  Vars (wrangler.toml): PRODUCT_* Gumroad product ids.
 import { notifySale } from './salenotify.js';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { TIERS, verifyLicense, normalizeKey } from '../../assets/tiers.js';

@@ -121,7 +121,7 @@ test('StackGrade subscription: key -> account tier; portal plan change; cancel a
     await signed(env, completed(s));
     const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
     assert.match(key, /^SG-PRO-/);
-    assert.ok(mails.find((m) => m.to[0] === 'buyer@example.com').text.includes('/stackgrade/app/ and choose Manage billing'));
+    assert.ok(mails.find((m) => m.to[0] === 'buyer@example.com').text.includes('cancel, update your card or download invoices: https://billing.stripe.com/p/login/test_x'));
     let v = await call(env, 'POST', '/v1/license/verify', { body: { key } });
     assert.equal(v.status, 200); assert.equal(v.body.tier, 'pro'); assert.equal(v.body.monitors, 25);
     const me = await call(env, 'GET', '/v1/me', { headers: { authorization: `Bearer ${key}` } });
@@ -166,18 +166,30 @@ test('session lookup validates the id', async () => {
     assert.equal((await call(env, 'GET', '/v1/stripe/session?id=nope')).status, 400);
 });
 
-test('portal: 503 without STRIPE_SECRET; with it, a session for the key\'s own customer and config', async () => {
-    const env = envBase(); env.STRIPE_PORTAL_CONFIG = 'bpc_test';
+test('portal: login link only for known Stripe keys; 503 when not configured', async () => {
+    const env = envBase(); const portal = env.STRIPE_PORTAL_URL; delete env.STRIPE_PORTAL_URL;
     const s = session({ payment_link: 'plink_T_PRO_M', amount_total: 1900, subscription: 'sub_p', payment_intent: null, customer: 'cus_portal' });
     await signed(env, completed(s));
     const key = (await call(env, 'GET', `/v1/stripe/session?id=${s.id}`)).body.key;
     assert.equal((await call(env, 'POST', '/v1/stripe/portal', { body: { key } })).status, 503);
-    env.STRIPE_SECRET = 'rk_test_x'; let sent = null;
-    const prev = globalThis.fetch; globalThis.fetch = async (u, init) => { if (String(u) === 'https://api.stripe.com/v1/billing_portal/sessions') { sent = { auth: init.headers.authorization, body: new URLSearchParams(init.body) }; return new Response(JSON.stringify({ url: 'https://billing.stripe.com/p/session/test_abc' }), { status: 200 }); } return prev(u, init); };
+    env.STRIPE_PORTAL_URL = portal;
     const r = await call(env, 'POST', '/v1/stripe/portal', { body: { key } });
-    assert.equal(r.status, 200); assert.equal(r.body.url, 'https://billing.stripe.com/p/session/test_abc');
-    assert.equal(sent.auth, 'Bearer rk_test_x'); assert.equal(sent.body.get('customer'), 'cus_portal'); assert.equal(sent.body.get('configuration'), 'bpc_test');
-    assert.match(sent.body.get('return_url'), /stackgrade\/app\/$/);
+    assert.equal(r.status, 200); assert.equal(r.body.url, portal);
     assert.equal((await call(env, 'POST', '/v1/stripe/portal', { body: { key: 'SG-PRO-0000-0000-0000-0000' } })).status, 404);
     assert.equal((await call(env, 'POST', '/v1/stripe/portal', { body: { key: 'ABCD' } })).status, 400);
+});
+
+test('events for other products (Featured, FortHire Pro) get 200 and are ignored', async () => {
+    const env = envBase();
+    const r = await signed(env, completed(session({ payment_link: 'plink_1USA5kQZcBGAqLabBKeLwVGK', metadata: {} })));
+    assert.equal(r.status, 200); assert.match(r.body.skipped, /not a GreenTools/);
+    const r2 = await signed(env, completed(session({ payment_link: 'plink_x', metadata: { product: 'forthire-pro', interval: 'month' } })));
+    assert.equal(r2.status, 200); assert.ok(r2.body.skipped);
+    const r3 = await signed(env, { id: 'e', type: 'customer.subscription.deleted', livemode: false, data: { object: { id: 'sub_other' } } });
+    assert.equal(r3.status, 200); assert.ok(r3.body.skipped);
+    const r4 = await signed(env, { id: 'e2', type: 'charge.refunded', livemode: false, data: { object: { id: 'ch_o', refunded: true, payment_intent: 'pi_other', customer: 'cus_other' } } });
+    assert.equal(r4.status, 200); assert.ok(r4.body.skipped);
+    const r5 = await signed(env, { id: 'e3', type: 'invoice.paid', livemode: false, data: { object: {} } });
+    assert.equal(r5.status, 200);
+    assert.equal(mails.length, 0); assert.equal(env.KV.m.size, 0);
 });

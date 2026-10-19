@@ -22,8 +22,6 @@ jobs:
       STAGING_PING_SECRET: ${{ secrets.STAGING_PING_SECRET }}
       STAGING_STRIPE_WHSEC: ${{ secrets.STAGING_SG_STRIPE_WEBHOOK_SECRET }}
       STRIPE_WHSEC: ${{ secrets.SG_STRIPE_WEBHOOK_SECRET }}
-      STAGING_STRIPE_RK: ${{ secrets.STAGING_SG_STRIPE_SECRET }}
-      STRIPE_RK: ${{ secrets.SG_STRIPE_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -34,8 +32,7 @@ jobs:
           npx wrangler deploy --env staging
           printf '%s' "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY --env staging >/dev/null
           printf '%s' "$STAGING_PING_SECRET" | npx wrangler secret put PING_SECRET --env staging >/dev/null
-          if [ -n "$STAGING_STRIPE_WHSEC" ]; then printf '%s' "$STAGING_STRIPE_WHSEC" | npx wrangler secret put STRIPE_WEBHOOK_SECRET --env staging >/dev/null; else echo "::notice::STAGING_SG_STRIPE_WEBHOOK_SECRET not set: staging /v1/stripe/webhook answers 503 (fail closed)"; fi
-          if [ -n "$STAGING_STRIPE_RK" ]; then printf '%s' "$STAGING_STRIPE_RK" | npx wrangler secret put STRIPE_SECRET --env staging >/dev/null; else echo "::notice::STAGING_SG_STRIPE_SECRET not set: /v1/stripe/portal answers 503"; fi
+          if [ -n "$STAGING_STRIPE_WHSEC" ]; then printf '%s' "$STAGING_STRIPE_WHSEC" | npx wrangler secret put STRIPE_WEBHOOK_SECRET --env staging >/dev/null; else echo "::notice::STAGING_SG_STRIPE_WEBHOOK_SECRET not in GitHub: keeping the Worker's existing STRIPE_WEBHOOK_SECRET"; fi
       - name: Staging smoke
         run: |
           SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).result.subdomain))')
@@ -54,7 +51,6 @@ jobs:
           npx wrangler deploy
           printf '%s' "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY >/dev/null
           if [ -n "$STRIPE_WHSEC" ]; then printf '%s' "$STRIPE_WHSEC" | npx wrangler secret put STRIPE_WEBHOOK_SECRET >/dev/null; fi
-          if [ -n "$STRIPE_RK" ]; then printf '%s' "$STRIPE_RK" | npx wrangler secret put STRIPE_SECRET >/dev/null; fi
       - name: Production smoke (rollback on failure)
         if: ${{ inputs.target == 'prod' }}
         run: |
