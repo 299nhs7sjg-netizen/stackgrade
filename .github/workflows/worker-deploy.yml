@@ -20,6 +20,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: 7692e06d17dc968f9343e1b8ae5db125
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       STAGING_PING_SECRET: ${{ secrets.STAGING_PING_SECRET }}
+      STAGING_STRIPE_WHSEC: ${{ secrets.STAGING_SG_STRIPE_WEBHOOK_SECRET }}
+      STRIPE_WHSEC: ${{ secrets.SG_STRIPE_WEBHOOK_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,11 +32,14 @@ jobs:
           npx wrangler deploy --env staging
           printf '%s' "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY --env staging >/dev/null
           printf '%s' "$STAGING_PING_SECRET" | npx wrangler secret put PING_SECRET --env staging >/dev/null
+          if [ -n "$STAGING_STRIPE_WHSEC" ]; then printf '%s' "$STAGING_STRIPE_WHSEC" | npx wrangler secret put STRIPE_WEBHOOK_SECRET --env staging >/dev/null; else echo "::notice::STAGING_SG_STRIPE_WEBHOOK_SECRET not set: staging /v1/stripe/webhook answers 503 (fail closed)"; fi
       - name: Staging smoke
         run: |
           SUB=$(curl -s -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/workers/subdomain" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).result.subdomain))')
           echo "SUB=$SUB" >> "$GITHUB_ENV"
-          for i in 1 2 3 4 5 6; do curl -sf "https://api-staging.$SUB.workers.dev/v1/health" | grep -q '"ok":true' && exit 0; sleep 5; done; echo "::error::staging health failed"; exit 1
+          B="https://api-staging.$SUB.workers.dev"; up=0
+          for i in 1 2 3 4 5 6; do curl -sf "$B/v1/health" | grep -q '"ok":true' && { up=1; break; }; sleep 5; done; [ $up = 1 ] || { echo "::error::staging health failed"; exit 1; }
+          node ../tools/stripe-smoke.mjs "$B"
       - name: Staging test ping (one [TEST] notification email)
         if: ${{ inputs.target == 'staging' && inputs.notify_test }}
         run: |
@@ -45,8 +50,9 @@ jobs:
         run: |
           npx wrangler deploy
           printf '%s' "$RESEND_API_KEY" | npx wrangler secret put RESEND_API_KEY >/dev/null
+          if [ -n "$STRIPE_WHSEC" ]; then printf '%s' "$STRIPE_WHSEC" | npx wrangler secret put STRIPE_WEBHOOK_SECRET >/dev/null; fi
       - name: Production smoke (rollback on failure)
         if: ${{ inputs.target == 'prod' }}
         run: |
-          for i in 1 2 3 4 5 6; do curl -sf "https://api.$SUB.workers.dev/v1/health" | grep -q '"ok":true' && exit 0; sleep 5; done
+          for i in 1 2 3 4 5 6; do curl -sf "https://api.$SUB.workers.dev/v1/health" | grep -q '"ok":true' && node ../tools/stripe-smoke.mjs "https://api.$SUB.workers.dev" && exit 0; sleep 5; done
           echo "::error::production health failed: rolling back"; npx wrangler rollback --name api -y --message "auto-rollback: smoke failed" || true; exit 1

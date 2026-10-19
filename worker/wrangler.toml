@@ -27,6 +27,11 @@ PRODUCT_CIPHIRE_PRO = "rlbL5LDgB6P7GJLCuC65NQ=="
 # Sale/refund notifications (worker/src/salenotify.js); secret RESEND_API_KEY is set by the deploy workflow.
 SALE_NOTIFY_FROM = "FortHire sales <alerts@forthire.com>"
 SALE_NOTIFY_TO = "productbuilder+sale@mail.grokbot.com"
+# Stripe fulfillment (worker/src/stripe.js). Secret STRIPE_WEBHOOK_SECRET is set by the deploy workflow from the GitHub
+# secret SG_STRIPE_WEBHOOK_SECRET (live endpoint). PLACEHOLDERS: empty sender = no buyer email (thanks page still shows the key).
+GT_EMAIL_FROM = ""        # PLACEHOLDER: e.g. "GreenTools <keys@your-verified-resend-domain>"
+SG_EMAIL_FROM = ""        # PLACEHOLDER: e.g. "StackGrade <keys@your-verified-resend-domain>"
+STRIPE_PORTAL_URL = ""    # PLACEHOLDER: live customer portal login link https://billing.stripe.com/p/login/...
 
 [observability]
 enabled = true
@@ -50,3 +55,7 @@ PRODUCT_AGENCY_KIT = "nexe9SLeFPs0uJlyO6EYkw=="
 PRODUCT_PRO = "yQKekf6hTcpoK_7Xp83jPg=="
 PRODUCT_AGENCY = "SDoHJkCBWhp7MOLhe3RhXQ=="
 PRODUCT_AGENCY_PLUS = "O0PyQiJuzM8-c9NCThQKzQ=="
+# Stripe sandbox (secret STRIPE_WEBHOOK_SECRET from GitHub secret STAGING_SG_STRIPE_WEBHOOK_SECRET)
+GT_EMAIL_FROM = ""        # PLACEHOLDER (staging sender)
+SG_EMAIL_FROM = ""        # PLACEHOLDER (staging sender)
+STRIPE_PORTAL_URL = ""    # PLACEHOLDER: sandbox portal link https://billing.stripe.com/p/login/test_...
