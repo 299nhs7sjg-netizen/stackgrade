@@ -2,7 +2,7 @@
   {
     "domain": "bbc.co.uk",
     "claim": "A",
-    "checkedAt": "2026-10-20T14:17:59.952Z",
+    "checkedAt": "2026-10-21T14:28:58.955Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=bbc.co.uk",
     "letter": "A",
     "score": 100,
@@ -17,7 +17,7 @@
   {
     "domain": "github.com",
     "claim": "A",
-    "checkedAt": "2026-10-20T14:18:16.768Z",
+    "checkedAt": "2026-10-21T14:29:14.709Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=github.com",
     "letter": "A",
     "score": 97,
@@ -32,7 +32,7 @@
   {
     "domain": "linear.app",
     "claim": "A",
-    "checkedAt": "2026-10-20T14:17:59.355Z",
+    "checkedAt": "2026-10-21T14:28:59.092Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=linear.app",
     "letter": "A",
     "score": 97,
@@ -47,7 +47,7 @@
   {
     "domain": "stripe.com",
     "claim": "A",
-    "checkedAt": "2026-10-20T14:18:00.150Z",
+    "checkedAt": "2026-10-21T14:28:59.325Z",
     "reportUrl": "https://299nhs7sjg-netizen.github.io/stackgrade/?d=stripe.com",
     "letter": "A",
     "score": 99,
