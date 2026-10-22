@@ -29,7 +29,8 @@ SALE_NOTIFY_FROM = "FortHire sales <alerts@forthire.com>"
 SALE_NOTIFY_TO = "productbuilder+sale@mail.grokbot.com"
 # Stripe fulfillment (worker/src/stripe.js). Secret STRIPE_WEBHOOK_SECRET is set by the deploy workflow from the GitHub
 # secret SG_STRIPE_WEBHOOK_SECRET (live endpoint). PLACEHOLDERS: empty sender = no buyer email (thanks page still shows the key).
-GT_EMAIL_FROM = ""        # PLACEHOLDER: e.g. "GreenTools <keys@your-verified-resend-domain>"
+GT_EMAIL_FROM = "GreenTools <keys@forthire.com>"
+BUYER_REPLY_TO = "support@forthire.com"
 SG_EMAIL_FROM = ""        # PLACEHOLDER: e.g. "StackGrade <keys@your-verified-resend-domain>"
 STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/00w14p9ah5hl2yi3YeaR200"   # live portal login (config bpc_1USBf6QZcBGAqLabKkKuGLMR)
 
@@ -56,6 +57,8 @@ PRODUCT_PRO = "yQKekf6hTcpoK_7Xp83jPg=="
 PRODUCT_AGENCY = "SDoHJkCBWhp7MOLhe3RhXQ=="
 PRODUCT_AGENCY_PLUS = "O0PyQiJuzM8-c9NCThQKzQ=="
 # Stripe sandbox (secret STRIPE_WEBHOOK_SECRET from GitHub secret STAGING_SG_STRIPE_WEBHOOK_SECRET)
-GT_EMAIL_FROM = ""        # PLACEHOLDER (staging sender)
+GT_EMAIL_FROM = "GreenTools <keys@forthire.com>"
+BUYER_REPLY_TO = "support@forthire.com"
+BUYER_EMAIL_ALLOW = "productbuilder+stg@mail.grokbot.com"   # staging emails only this address
 SG_EMAIL_FROM = ""        # PLACEHOLDER (staging sender)
 STRIPE_PORTAL_URL = "https://billing.stripe.com/p/login/test_9B628rfPN0et6zK12M3sI00"   # sandbox portal login (config bpc_1USBewHIF61kB5K4Yp1gR7fK)

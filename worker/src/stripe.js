@@ -12,7 +12,8 @@
 //     it (lost). Matched by payment intent (one-time purchases). Subscription charges carry no payment link reference and
 //     the Worker has no Stripe API key, so those are reported as unmatched in the alert and handled with admin stripe-key.
 //     sdsp:<dispute> -> key hash (so the closing event finds the key a created event or support suspended).
-// Vars: GT_EMAIL_FROM, SG_EMAIL_FROM (buyer email senders; empty = no buyer email, the thanks page still shows the key),
+// Vars: BUYER_REPLY_TO, BUYER_EMAIL_ALLOW (comma list; set = only those buyers are emailed, used on staging),
+//       GT_EMAIL_FROM, SG_EMAIL_FROM (buyer email senders; empty = no buyer email, the thanks page still shows the key),
 //       STRIPE_PORTAL_URL (portal login link). Secrets: STRIPE_WEBHOOK_SECRET, RESEND_API_KEY. No Stripe API key is used.
 import { catalogIndex, CATALOG } from './stripe-config.js';
 import { notifySale, money } from './salenotify.js';
@@ -134,9 +135,11 @@ export async function fulfillSession(env, session, { now = Date.now(), fetchImpl
     }
     const out = { issued: true, keyHash: h, entry: entry.id };
     const from = entry.kind === 'gt' ? env.GT_EMAIL_FROM : env.SG_EMAIL_FROM;
-    if (email && from) {
+    const allow = String(env.BUYER_EMAIL_ALLOW || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+    if (email && from && allow.length && !allow.includes(String(email).toLowerCase())) out.buyerEmail = { sent: false, reason: 'not on BUYER_EMAIL_ALLOW' };
+    else if (email && from) {
         const m = renderKeyEmail({ entry, key, session, now, portal: env.STRIPE_PORTAL_URL || '' });
-        try { out.buyerEmail = await sendResend(env, { from, to: [email], subject: m.subject, text: m.text, tags: [{ name: 'kind', value: 'stripe-key' }] }, `stripe-key-${session.id}`, fetchImpl); }
+        try { out.buyerEmail = await sendResend(env, { from, to: [email], ...(env.BUYER_REPLY_TO ? { reply_to: env.BUYER_REPLY_TO } : {}), subject: m.subject, text: m.text, tags: [{ name: 'kind', value: 'stripe-key' }] }, `stripe-key-${session.id}`, fetchImpl); }
         catch (e) { out.buyerEmail = { sent: false, reason: String(e?.message || e) }; }
     } else out.buyerEmail = { sent: false, reason: email ? `${entry.kind === 'gt' ? 'GT' : 'SG'}_EMAIL_FROM not set` : 'no buyer email' };
     try { out.notify = await notifySale(env, { resource: 'sale', saleId: session.id, productName: entry.name, price: session.amount_total, currency: session.currency, test: !session.livemode, email, recurrence: entry.interval || null }, { brand: `${brandOf(entry)} (Stripe)`, now, fetchImpl }); } catch {}
